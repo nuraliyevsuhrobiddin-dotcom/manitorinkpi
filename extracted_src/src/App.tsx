@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { CONSTANTS } from './data.js';
 import { ASSETS } from './assetManifest.js';
 import { SupabaseState } from './supabaseState';
@@ -3475,7 +3475,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>(CONSTANTS.PROJECTS);
   const [scoringSystem, setScoringSystem] = useState<ScoringSystem>(CONSTANTS.SCORING_SYSTEM);
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
-  const hasLoadedRemoteState = useRef(false);
+  const [remoteStateReady, setRemoteStateReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -3499,7 +3499,7 @@ function App() {
       } catch (error) {
         console.error('Supabase state load error:', error);
       } finally {
-        if (!cancelled) hasLoadedRemoteState.current = true;
+        if (!cancelled) setRemoteStateReady(true);
       }
     };
 
@@ -3511,7 +3511,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedRemoteState.current) return;
+    if (!remoteStateReady) return;
 
     const timeoutId = window.setTimeout(() => {
       SupabaseState.save({
@@ -3540,7 +3540,7 @@ function App() {
     }, 700);
 
     return () => window.clearTimeout(timeoutId);
-  }, [users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
+  }, [remoteStateReady, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
 
   const getScore = useCallback((type: string, subType: string): number => {
     // @ts-ignore

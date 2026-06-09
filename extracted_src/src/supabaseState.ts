@@ -39,7 +39,7 @@ export const SupabaseState = {
         method: 'POST',
         headers: {
           ...headers(),
-          Prefer: 'resolution=merge-duplicates',
+          Prefer: 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify({ id: stateId, data }),
       }
