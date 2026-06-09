@@ -3449,7 +3449,7 @@ const LoginModal: React.FC<{
 function App() {
   const guestUser = useMemo(() => CONSTANTS.USERS.find(u => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
   
-  const [user, setUser] = useState<User | null>(guestUser);
+  const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
@@ -3484,21 +3484,39 @@ function App() {
     const loadRemoteState = async () => {
       try {
         const remoteState = await SupabaseState.load();
-        if (cancelled || !remoteState) return;
+        const fallbackState = SupabaseState.loadLocal();
+        const { state: appState, source } = SupabaseState.chooseNewest(remoteState, fallbackState);
+        if (cancelled || !appState) return;
+        skipInitialRemoteSave.current = source !== 'local';
 
-        setUsers(stripUserSecrets((remoteState.USERS as User[]) || CONSTANTS.USERS) as User[]);
-        setFaculties((remoteState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
-        setDepartments((remoteState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
-        setDivisions((remoteState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
-        setPositions((remoteState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
-        setProfessors((remoteState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
-        setAchievements((remoteState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
-        setPlans((remoteState.PLANS as Plan[]) || CONSTANTS.PLANS);
-        setProjects((remoteState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
-        setScoringSystem((remoteState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-        setThesisDefenses((remoteState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+        setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
+        setFaculties((appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
+        setDepartments((appState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
+        setDivisions((appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
+        setPositions((appState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
+        setProfessors((appState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
+        setAchievements((appState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
+        setPlans((appState.PLANS as Plan[]) || CONSTANTS.PLANS);
+        setProjects((appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
+        setScoringSystem((appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
+        setThesisDefenses((appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
       } catch (error) {
         console.error('Supabase state load error:', error);
+        const fallbackState = SupabaseState.loadLocal();
+        if (cancelled || !fallbackState) return;
+        skipInitialRemoteSave.current = false;
+
+        setUsers(stripUserSecrets((fallbackState.USERS as User[]) || CONSTANTS.USERS) as User[]);
+        setFaculties((fallbackState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
+        setDepartments((fallbackState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
+        setDivisions((fallbackState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
+        setPositions((fallbackState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
+        setProfessors((fallbackState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
+        setAchievements((fallbackState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
+        setPlans((fallbackState.PLANS as Plan[]) || CONSTANTS.PLANS);
+        setProjects((fallbackState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
+        setScoringSystem((fallbackState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
+        setThesisDefenses((fallbackState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
       } finally {
         if (!cancelled) setRemoteStateReady(true);
       }
@@ -3518,31 +3536,36 @@ function App() {
       return;
     }
 
+    const stateToSave = {
+      FACULTIES: faculties,
+      DEPARTMENTS: departments,
+      DIVISIONS: divisions,
+      POSITIONS: positions,
+      EMPLOYMENT_TYPES: CONSTANTS.EMPLOYMENT_TYPES,
+      PROJECT_TYPES: CONSTANTS.PROJECT_TYPES,
+      PROJECT_DIRECTIONS: CONSTANTS.PROJECT_DIRECTIONS,
+      PROJECT_LEADER_POSITIONS: CONSTANTS.PROJECT_LEADER_POSITIONS,
+      PROJECT_DURATIONS: CONSTANTS.PROJECT_DURATIONS,
+      PROJECTS: projects,
+      PROFESSORS: professors,
+      PLANS: plans,
+      ACHIEVEMENTS: achievements,
+      SCORING_SYSTEM: scoringSystem,
+      USERS: stripUserSecrets(users),
+      THESIS_DEFENSES: thesisDefenses,
+      SPECIALTIES: CONSTANTS.SPECIALTIES,
+      FIELDS_OF_SCIENCE: CONSTANTS.FIELDS_OF_SCIENCE,
+      DEFENSE_TYPES: CONSTANTS.DEFENSE_TYPES,
+      [SupabaseState.savedAtKey]: new Date().toISOString(),
+    };
+
+    SupabaseState.saveLocal(stateToSave);
+
     const timeoutId = window.setTimeout(() => {
-      SupabaseState.save({
-        FACULTIES: faculties,
-        DEPARTMENTS: departments,
-        DIVISIONS: divisions,
-        POSITIONS: positions,
-        EMPLOYMENT_TYPES: CONSTANTS.EMPLOYMENT_TYPES,
-        PROJECT_TYPES: CONSTANTS.PROJECT_TYPES,
-        PROJECT_DIRECTIONS: CONSTANTS.PROJECT_DIRECTIONS,
-        PROJECT_LEADER_POSITIONS: CONSTANTS.PROJECT_LEADER_POSITIONS,
-        PROJECT_DURATIONS: CONSTANTS.PROJECT_DURATIONS,
-        PROJECTS: projects,
-        PROFESSORS: professors,
-        PLANS: plans,
-        ACHIEVEMENTS: achievements,
-        SCORING_SYSTEM: scoringSystem,
-        USERS: stripUserSecrets(users),
-        THESIS_DEFENSES: thesisDefenses,
-        SPECIALTIES: CONSTANTS.SPECIALTIES,
-        FIELDS_OF_SCIENCE: CONSTANTS.FIELDS_OF_SCIENCE,
-        DEFENSE_TYPES: CONSTANTS.DEFENSE_TYPES,
-      }).catch((error) => {
+      SupabaseState.save(stateToSave).catch((error) => {
         console.error('Supabase state save error:', error);
       });
-    }, 700);
+    }, 3000);
 
     return () => window.clearTimeout(timeoutId);
   }, [remoteStateReady, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
