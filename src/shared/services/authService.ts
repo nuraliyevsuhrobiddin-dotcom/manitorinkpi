@@ -11,33 +11,86 @@ export interface AuthProvider {
   logout(): Promise<void>;
 }
 
-const AUTH_STORAGE_KEY = 'kpi_demo_auth_user';
+interface SupabaseAuthUser {
+  id: string;
+  email?: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+}
 
-class DemoAuthProvider implements AuthProvider {
+interface SupabaseAuthSession {
+  access_token: string;
+  refresh_token?: string;
+  user: SupabaseAuthUser;
+}
+
+const AUTH_STORAGE_KEY = 'kpi_admin_auth_session';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+  .split(',')
+  .map((email: string) => email.trim().toLowerCase())
+  .filter(Boolean);
+
+const isAdminUser = (authUser: SupabaseAuthUser) => {
+  const email = authUser.email?.toLowerCase();
+  const metadataRole = String(authUser.user_metadata?.role || authUser.app_metadata?.role || '').toLowerCase();
+
+  return metadataRole === 'admin' || metadataRole === 'superadmin' || Boolean(email && adminEmails.includes(email));
+};
+
+const toAppUser = (authUser: SupabaseAuthUser): User | null => {
+  if (!isAdminUser(authUser)) return null;
+
+  return {
+    id: Number.parseInt(authUser.id.replace(/\D/g, '').slice(0, 9), 10) || 1,
+    username: authUser.email || 'admin',
+    role: 'superadmin',
+  };
+};
+
+class SupabaseAuthProvider implements AuthProvider {
   getCurrentUser(): User | null {
     try {
-      const storedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-      return storedUser ? (JSON.parse(storedUser) as User) : null;
+      const storedSession = localStorage.getItem(AUTH_STORAGE_KEY);
+      if (!storedSession) return null;
+
+      const session = JSON.parse(storedSession) as SupabaseAuthSession;
+      return toAppUser(session.user);
     } catch {
       return null;
     }
   }
 
   async login({ username, password }: AuthCredentials): Promise<User | null> {
-    const normalizedUsername = username.trim();
+    const email = username.trim();
 
-    if (!normalizedUsername || !password.trim()) {
+    if (!supabaseUrl || !supabaseAnonKey || !email || !password.trim()) {
       return null;
     }
 
-    const user: User = {
-      id: 1,
-      username: normalizedUsername,
-      role: 'superadmin',
-    };
+    const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        apikey: supabaseAnonKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
 
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
-    return user;
+    if (!response.ok) {
+      return null;
+    }
+
+    const session = (await response.json()) as SupabaseAuthSession;
+    const appUser = toAppUser(session.user);
+
+    if (!appUser) {
+      return null;
+    }
+
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+    return appUser;
   }
 
   async logout(): Promise<void> {
@@ -46,4 +99,4 @@ class DemoAuthProvider implements AuthProvider {
   }
 }
 
-export const AuthService: AuthProvider = new DemoAuthProvider();
+export const AuthService: AuthProvider = new SupabaseAuthProvider();
