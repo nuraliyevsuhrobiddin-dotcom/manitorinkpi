@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CONSTANTS } from './data.js';
 import { ASSETS } from './assetManifest.js';
 import { SupabaseState } from './supabaseState';
@@ -3476,6 +3476,7 @@ function App() {
   const [scoringSystem, setScoringSystem] = useState<ScoringSystem>(CONSTANTS.SCORING_SYSTEM);
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
   const [remoteStateReady, setRemoteStateReady] = useState(false);
+  const skipInitialRemoteSave = useRef(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -3512,6 +3513,10 @@ function App() {
 
   useEffect(() => {
     if (!remoteStateReady) return;
+    if (skipInitialRemoteSave.current) {
+      skipInitialRemoteSave.current = false;
+      return;
+    }
 
     const timeoutId = window.setTimeout(() => {
       SupabaseState.save({
