@@ -1,0 +1,7 @@
+{
+  "resolution": {
+    "width": 1366,
+    "height": 768
+  },
+  "summary": "Users can now export the KPI data for professors to an Excel file. A new \"Excelga yuklash\" button is visible on the KPI page for administrators, allowing them to download the displayed data."
+}

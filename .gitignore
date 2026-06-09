@@ -1,0 +1,9 @@
+.env
+node_modules/
+dist/
+vite-dev.log
+vite-dev.err.log
+index-Cjzqlj2e.js
+index-Cjzqlj2e.js.map
+.DS_Store
+Thumbs.db
