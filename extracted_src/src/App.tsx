@@ -184,7 +184,7 @@ const Modal: React.FC<{ open: boolean, onClose: () => void, children: React.Reac
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className={`bg-white rounded-lg shadow-lg p-4 sm:p-6 w-[calc(100vw-24px)] sm:min-w-[320px] sm:w-auto max-w-full max-h-[90vh] overflow-y-auto relative ${className}`}>
+      <div className={`bg-white rounded-lg shadow-lg p-6 min-w-[320px] max-w-full relative ${className}`}>
         <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={onClose}>
           <svg width="24" height="24"><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2"/><line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" strokeWidth="2"/></svg>
         </button>
@@ -1069,7 +1069,7 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
       const lowercasedQuery = searchQuery.toLowerCase();
       filtered = filtered.filter((p: any) => 
         getProfessorName(p).toLowerCase().includes(lowercasedQuery) ||
-        p.department?.name?.toLowerCase().includes(lowercasedQuery)
+        p.department.name.toLowerCase().includes(lowercasedQuery)
       );
     }
     return filtered;
@@ -1163,8 +1163,8 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
       'Jinsi': prof.gender,
       'Tug‘ilgan sana': prof.birthDate,
       'Yoshi': getAge(prof.birthDate),
-      'Fakultet': prof.faculty?.name || '-',
-      'Kafedra': prof.department?.name || '-',
+      'Fakultet': prof.faculty.name,
+      'Kafedra': prof.department.name,
       'Lavozimi': prof.position,
       'O‘rindoshlik turi': prof.employmentType,
       'Shtat birligi': prof.staffUnit,
@@ -1284,8 +1284,8 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
                   <td className="px-4 py-2 capitalize">{prof.gender}</td>
                   <td className="px-4 py-2">{prof.birthDate}</td>
                   <td className="px-4 py-2">{getAge(prof.birthDate)}</td>
-                  <td className="px-4 py-2">{prof.faculty?.name || '-'}</td>
-                  <td className="px-4 py-2">{prof.department?.name || '-'}</td>
+                  <td className="px-4 py-2">{prof.faculty.name}</td>
+                  <td className="px-4 py-2">{prof.department.name}</td>
                   <td className="px-4 py-2">{prof.position}</td>
                   <td className="px-4 py-2">{prof.employmentType}</td>
                   <td className="px-4 py-2">{prof.staffUnit.toFixed(2)}</td>
@@ -2441,8 +2441,8 @@ const ScientificPotentialPage: React.FC<{
       'Jinsi': prof.gender,
       'Tug‘ilgan sana': prof.birthDate,
       'Yoshi': getAge(prof.birthDate),
-      'Fakultet': prof.faculty?.name || '-',
-      'Kafedra': prof.department?.name || '-',
+      'Fakultet': prof.faculty.name,
+      'Kafedra': prof.department.name,
       'Lavozimi': prof.position,
       'O‘rindoshlik turi': prof.employmentType,
       'Shtat birligi': prof.staffUnit,
@@ -3188,7 +3188,7 @@ const KPIPage: React.FC<{
     const dataToExport = filteredProfessors.map((prof, index) => ({
       '№': index + 1,
       'F.I.Sh.': prof.name,
-      'Kafedra': prof.department?.name || '-',
+      'Kafedra': prof.department.name,
       'Reja': prof.annualPlan.toFixed(2),
       'Amalda': prof.totalScore.toFixed(2),
       'Bajarilish %': prof.completionPercent.toFixed(1),
@@ -3747,12 +3747,10 @@ function App() {
     navItems.push({ id: 'management', label: 'Boshqarish', icon: Settings });
   }
 
-  const activeNavItem = navItems.find(item => item.id === activeView) || navItems[0];
-
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white shadow-md flex-shrink-0 flex-col">
+      <aside className="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
         <div className="h-20 flex items-center justify-center border-b px-4 text-center">
           <img src={ASSETS.logos.university.path} alt="Logo" className="h-10 w-10 mr-2" />
           <h1 className="text-sm font-bold text-gray-800">Shahrisabz davlat pedagogika institutining ilmiy natijakorlik bo‘yicha reyting tizimi</h1>
@@ -3776,16 +3774,12 @@ function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b flex flex-col gap-3 px-4 py-3 sm:px-6 lg:h-20 lg:flex-row lg:items-center lg:justify-between lg:py-0">
-          <div className="flex items-center min-w-0 lg:flex-grow">
-            <img src={ASSETS.logos.university.path} alt="Logo" className="h-9 w-9 mr-3 lg:hidden" />
-            <div className="min-w-0 lg:hidden">
-              <p className="text-xs text-gray-500">Shahrisabz DPI</p>
-              <h2 className="truncate text-base font-bold text-gray-800">{activeNavItem.label}</h2>
-            </div>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <header className="h-20 bg-white border-b flex items-center justify-between px-6">
+          <div className="flex items-center space-x-4 flex-grow">
+            {/* Global search removed */}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 lg:justify-end lg:space-x-4 lg:gap-0 lg:pl-4">
+          <div className="flex items-center space-x-4 pl-4">
             <div className="flex items-center space-x-2">
               <Calendar size={16} className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">Hisobot yili: {selectedYear}</span>
@@ -3806,7 +3800,7 @@ function App() {
             )}
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-3 pb-24 sm:p-4 sm:pb-24 lg:p-6 lg:pb-6">
+        <div className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
@@ -3819,24 +3813,6 @@ function App() {
             </motion.div>
           </AnimatePresence>
         </div>
-        <nav className="fixed bottom-0 left-0 right-0 z-40 border-t bg-white shadow-lg lg:hidden">
-          <div className="flex overflow-x-auto px-2 py-2">
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveView(item.id)}
-                className={`min-w-[86px] flex flex-col items-center justify-center rounded-lg px-2 py-2 text-xs font-medium transition-colors duration-200 ${
-                  activeView === item.id
-                    ? 'bg-blue-500 text-white'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                <item.icon size={18} className="mb-1" />
-                <span className="max-w-[78px] truncate">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
       </main>
       <LoginModal 
         open={loginModalOpen}
