@@ -2,13 +2,16 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CONSTANTS } from './data.js';
 import { ASSETS } from './assetManifest.js';
+import { Header } from './components/Header';
+import { MobileMenu } from './components/MobileMenu';
+import type { SidebarNavItem } from './components/Sidebar';
 import { SupabaseState } from './supabaseState';
 import { AuthService } from '../../src/shared/services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BarChart3, Building, Users, GraduationCap, ChevronDown, ChevronRight,
-  BookOpen, FlaskConical, Award, FileText, Lightbulb, Briefcase, Languages, Trophy, UserCheck, Star, Calendar, Filter,
-  Settings, PlusCircle, Edit, Trash2, Eye, TrendingUp, FileSpreadsheet, Edit3, LogIn, Search, TrendingDown, UserCog, LogOut, ClipboardList, X, ChevronUp, UserPlus,
+  BookOpen, FlaskConical, Award, FileText, Lightbulb, Briefcase, Languages, Trophy, UserCheck, Star, Filter,
+  Settings, PlusCircle, Edit, Trash2, Eye, TrendingUp, FileSpreadsheet, Edit3, LogIn, Search, TrendingDown, UserCog, ClipboardList, ChevronUp, UserPlus,
   Rocket, Target, Handshake, BookCopy, DollarSign
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -34,6 +37,7 @@ type Filters = {
 };
 
 const stripUserSecrets = (items: User[] = []) => items.map(({ password, ...user }) => user);
+const REPORT_YEAR_STORAGE_KEY = 'kpi_selected_report_year';
 
 // Ikonkalarni yutuq turlariga moslash
 const achievementIcons: { [key: string]: React.ElementType } = {
@@ -734,7 +738,7 @@ const ProfessorEvaluationModal: React.FC<{
   onClose: () => void;
   professor: any;
   achievements: Achievement[];
-  onSave: (updatedAchievements: Achievement[]) => void;
+  onSave: (updatedAchievements: Achievement[], target: { year: number, quarter: number }) => void;
   year: number;
   scoringSystem: ScoringSystem;
   getScore: (type: string, subType: string) => number;
@@ -780,7 +784,7 @@ const ProfessorEvaluationModal: React.FC<{
 
   function handleSave() {
     const filtered = localAchievements.filter(a => a.count > 0);
-    onSave(filtered);
+    onSave(filtered, { year, quarter });
     onClose();
   }
 
@@ -1130,14 +1134,13 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
     setPlans((prev: any[]) => prev.filter(p => p.professorId !== activeProfessor.id));
     setDeleteModalOpen(false);
   }
-  function handleEvalSave(updatedAchievements: Achievement[]) {
+  function handleEvalSave(updatedAchievements: Achievement[], target: { year: number, quarter: number }) {
     if (!activeProfessor) return;
     const { id: profId } = activeProfessor;
-    
-    const updatedAchievementsForProfessor = updatedAchievements.filter(a => a.professorId === profId);
-    if (updatedAchievementsForProfessor.length === 0) return;
-
-    const { year, quarter } = updatedAchievementsForProfessor[0];
+    const { year, quarter } = target;
+    const updatedAchievementsForProfessor = updatedAchievements
+      .filter(a => a.professorId === profId)
+      .map(a => ({ ...a, professorId: profId, year, quarter }));
 
     setAchievements((prev: any[]) => [
       ...prev.filter(a => !(a.professorId === profId && a.year === year && a.quarter === quarter)),
@@ -3316,14 +3319,15 @@ const EfficiencyPage: React.FC<{
     { id: 'faculties', label: 'Fakultetlar' },
   ];
 
-  const lowThreshold = 50;
-  const midThreshold = 75;
+  const failedMinThreshold = 1;
+  const lowThreshold = 30;
+  const midThreshold = 50;
 
   const renderLists = (items: any[]) => {
     const filteredItems = items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const lowPerformers = filteredItems.filter(item => item.annualPlan > 0 && item.completionPercent >= lowThreshold && item.completionPercent < midThreshold);
-    const failedPerformers = filteredItems.filter(item => item.annualPlan > 0 && item.completionPercent < lowThreshold);
+    const failedPerformers = filteredItems.filter(item => item.annualPlan > 0 && item.completionPercent >= failedMinThreshold && item.completionPercent < lowThreshold);
 
     const ListComponent: React.FC<{ title: string, items: any[], color: 'yellow' | 'red' }> = ({ title, items, color }) => (
       <Card className={`border-l-4 ${color === 'yellow' ? 'border-yellow-500' : 'border-red-500'}`}>
@@ -3346,7 +3350,7 @@ const EfficiencyPage: React.FC<{
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ListComponent title={`Samaradorligi past (bajarilish ${lowThreshold}% - ${midThreshold}%)`} items={lowPerformers} color="yellow" />
-        <ListComponent title={`Rejani bajarmagan (bajarilish < ${lowThreshold}%)`} items={failedPerformers} color="red" />
+        <ListComponent title={`Rejani bajarmagan (bajarilish ${failedMinThreshold}% - ${lowThreshold}%)`} items={failedPerformers} color="red" />
       </div>
     );
   };
@@ -3452,11 +3456,14 @@ function App() {
   const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<Filters>({ gender: [], degree: [], title: [], ageRange: [], position: [] });
-
-  const selectedYear = 2026;
+  const [selectedYear, setSelectedYear] = useState(() => {
+    const savedYear = Number(window.localStorage.getItem(REPORT_YEAR_STORAGE_KEY));
+    return Number.isFinite(savedYear) && savedYear > 0 ? savedYear : 2026;
+  });
 
   // Permissions
   const isSuperAdmin = user?.role === 'superadmin';
@@ -3477,6 +3484,24 @@ function App() {
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
   const [remoteStateReady, setRemoteStateReady] = useState(false);
   const skipInitialRemoteSave = useRef(true);
+
+  const availableReportYears = useMemo(() => {
+    const years = new Set<number>([selectedYear, 2026]);
+    achievements.forEach(item => {
+      if (Number.isFinite(item.year)) years.add(item.year);
+    });
+    plans.forEach(item => {
+      if (Number.isFinite(item.year)) years.add(item.year);
+    });
+    thesisDefenses.forEach(item => {
+      if (Number.isFinite(item.year)) years.add(item.year);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [achievements, plans, selectedYear, thesisDefenses]);
+
+  useEffect(() => {
+    window.localStorage.setItem(REPORT_YEAR_STORAGE_KEY, String(selectedYear));
+  }, [selectedYear]);
 
   useEffect(() => {
     let cancelled = false;
@@ -3759,7 +3784,9 @@ function App() {
     }
   };
 
-  let navItems = [
+  const appTitle = 'SHDPI';
+
+  let navItems: SidebarNavItem[] = [
     { id: 'dashboard', label: 'Umumiy statistika', icon: LayoutDashboard },
     { id: 'faculties', label: 'Fakultetlar', icon: Building },
     { id: 'departments', label: 'Kafedralar', icon: BarChart3 },
@@ -3776,58 +3803,26 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md flex-shrink-0 flex flex-col">
-        <div className="h-20 flex items-center justify-center border-b px-4 text-center">
-          <img src={ASSETS.logos.university.path} alt="Logo" className="h-10 w-10 mr-2" />
-          <h1 className="text-sm font-bold text-gray-800">Shahrisabz davlat pedagogika institutining ilmiy natijakorlik bo‘yicha reyting tizimi</h1>
-        </div>
-        <nav className="flex-grow px-4 py-6">
-          {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => setActiveView(item.id)}
-              className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 mb-2 ${
-                activeView === item.id
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <item.icon size={20} className="mr-3" />
-              {item.label}
-            </button>
-          ))}
-        </nav>
-      </aside>
-
-      {/* Main Content */}
+    <div className="flex h-screen bg-gray-100 dark:bg-gray-950">
+      <MobileMenu
+        activeView={activeView}
+        isOpen={sidebarOpen}
+        logoPath={ASSETS.logos.university.path}
+        navItems={navItems}
+        onClose={() => setSidebarOpen(false)}
+        onNavigate={setActiveView}
+        title={appTitle}
+      />
       <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white border-b flex items-center justify-between px-6">
-          <div className="flex items-center space-x-4 flex-grow">
-            {/* Global search removed */}
-          </div>
-          <div className="flex items-center space-x-4 pl-4">
-            <div className="flex items-center space-x-2">
-              <Calendar size={16} className="text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Hisobot yili: {selectedYear}</span>
-            </div>
-            {user?.role === 'superadmin' ? (
-              <div className="flex items-center space-x-3 border-l pl-4">
-                <span className="font-medium text-sm text-gray-700">{user.username}</span>
-                <button onClick={handleLogout} className="p-2 rounded-full hover:bg-gray-100 text-gray-600" title="Chiqish">
-                  <LogOut size={18} />
-                </button>
-              </div>
-            ) : (
-              <div className="border-l pl-4">
-                <button onClick={() => setLoginModalOpen(true)} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
-                  <LogIn size={16} className="mr-2" /> Kirish
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+        <Header
+          availableReportYears={availableReportYears}
+          onLoginClick={() => setLoginModalOpen(true)}
+          onLogout={handleLogout}
+          onMenuClick={() => setSidebarOpen(true)}
+          onYearChange={setSelectedYear}
+          selectedYear={selectedYear}
+          user={user}
+        />
         <div className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             <motion.div
