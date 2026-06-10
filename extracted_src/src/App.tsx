@@ -3319,7 +3319,7 @@ const EfficiencyPage: React.FC<{
     { id: 'faculties', label: 'Fakultetlar' },
   ];
 
-  const failedMinThreshold = 1;
+  const failedMinThreshold = 0;
   const lowThreshold = 30;
   const midThreshold = 50;
 
