@@ -7,10 +7,7 @@ export default [
     ignores: [
       'dist/**',
       'node_modules/**',
-      'index-Cjzqlj2e.js',
-      'index-Cjzqlj2e.js.map',
       'extracted_src/src/App.tsx',
-      'extracted_src/src/index.tsx',
     ],
   },
   {
