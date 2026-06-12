@@ -1,142 +1,6 @@
 {
   "CONSTANTS": {
-    "ACHIEVEMENTS": [
-      {
-        "count": 1,
-        "id": 1,
-        "professorId": 1,
-        "quarter": 1,
-        "subType": "Scopus Q1",
-        "type": "publication",
-        "year": 2026
-      },
-      {
-        "count": 2,
-        "id": 2,
-        "professorId": 2,
-        "quarter": 1,
-        "subType": "OAK respublika",
-        "type": "publication",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 3,
-        "professorId": 3,
-        "quarter": 1,
-        "subType": "Scopus Q3",
-        "type": "publication",
-        "year": 2026
-      },
-      {
-        "count": 3,
-        "id": 4,
-        "professorId": 4,
-        "quarter": 1,
-        "subType": "DGU",
-        "type": "intellectual_property",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 5,
-        "professorId": 5,
-        "quarter": 1,
-        "subType": "Bajarilayotgan xalqaro loyiha",
-        "type": "project",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 6,
-        "professorId": 6,
-        "quarter": 1,
-        "subType": "Respublika tanlovi 1-o\u2018rin",
-        "type": "student_achievement",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 7,
-        "professorId": 7,
-        "quarter": 1,
-        "subType": "Monografiya",
-        "type": "methodological_work",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 8,
-        "professorId": 8,
-        "quarter": 1,
-        "subType": "Scopus Q1",
-        "type": "publication",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 9,
-        "professorId": 9,
-        "quarter": 1,
-        "subType": "PhD rahbarlik",
-        "type": "supervision",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 10,
-        "professorId": 10,
-        "quarter": 1,
-        "subType": "Scopus Q3",
-        "type": "publication",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 11,
-        "professorId": 1,
-        "quarter": 2,
-        "subType": "PhD rahbarlik",
-        "type": "supervision",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 12,
-        "professorId": 2,
-        "quarter": 2,
-        "subType": "O\u2018quv qo\u2018llanma",
-        "type": "methodological_work",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 13,
-        "professorId": 3,
-        "quarter": 2,
-        "subType": "Xorijiy stajirovka",
-        "type": "international_activity",
-        "year": 2026
-      },
-      {
-        "count": 2,
-        "id": 14,
-        "professorId": 4,
-        "quarter": 2,
-        "subType": "publication",
-        "type": "Xalqaro konferensiya",
-        "year": 2026
-      },
-      {
-        "count": 1,
-        "id": 15,
-        "professorId": 5,
-        "quarter": 2,
-        "subType": "DSc rahbarlik",
-        "type": "supervision",
-        "year": 2026
-      }
-    ],
+    "ACHIEVEMENTS": [],
     "DEFENSE_TYPES": [
       "PhD",
       "DSc",
@@ -157,22 +21,22 @@
       {
         "facultyId": 1,
         "id": 3,
-        "name": "Boshlang\u2018ich ta\u2019lim metodikasi"
+        "name": "Boshlang‘ich ta’lim metodikasi"
       },
       {
         "facultyId": 1,
         "id": 4,
-        "name": "Boshlang\u2018ich ta\u2019lim nazariyasi"
+        "name": "Boshlang‘ich ta’lim nazariyasi"
       },
       {
         "facultyId": 1,
         "id": 5,
-        "name": "Maktabgacha ta\u2019lim"
+        "name": "Maktabgacha ta’lim"
       },
       {
         "facultyId": 1,
         "id": 6,
-        "name": "Matematika va ta\u2019limda axborot texnologiyalari"
+        "name": "Matematika va ta’limda axborot texnologiyalari"
       },
       {
         "facultyId": 2,
@@ -202,7 +66,7 @@
       {
         "facultyId": 3,
         "id": 12,
-        "name": "San\u2019atshunoslik"
+        "name": "San’atshunoslik"
       },
       {
         "facultyId": 3,
@@ -213,8 +77,8 @@
     "DIVISIONS": [],
     "EMPLOYMENT_TYPES": [
       "Asosiy",
-      "Ichki o\u2018rindosh",
-      "Tashqi o\u2018rindosh"
+      "Ichki o‘rindosh",
+      "Tashqi o‘rindosh"
     ],
     "FACULTIES": [
       {
@@ -237,711 +101,18 @@
       "Fizika-matematika fanlari",
       "Iqtisodiyot fanlari"
     ],
-    "PLANS": [
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q1",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "DSc rahbarlik",
-            "type": "supervision"
-          },
-          {
-            "count": 1,
-            "subType": "Darslik",
-            "type": "methodological_work"
-          }
-        ],
-        "professorId": 1,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Scopus Q2",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Monografiya",
-            "type": "methodological_work"
-          }
-        ],
-        "professorId": 2,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q3",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Xorijiy stajirovka",
-            "type": "international_activity"
-          }
-        ],
-        "professorId": 3,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Xalqaro konferensiya",
-            "type": "publication"
-          },
-          {
-            "count": 2,
-            "subType": "DGU",
-            "type": "intellectual_property"
-          }
-        ],
-        "professorId": 4,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Bajarilayotgan xalqaro loyiha",
-            "type": "project"
-          },
-          {
-            "count": 1,
-            "subType": "DSc rahbarlik",
-            "type": "supervision"
-          }
-        ],
-        "professorId": 5,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Respublika tanlovi 1-o\u2018rin",
-            "type": "student_achievement"
-          },
-          {
-            "count": 3,
-            "subType": "OAK respublika",
-            "type": "publication"
-          }
-        ],
-        "professorId": 6,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q2",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Monografiya",
-            "type": "methodological_work"
-          }
-        ],
-        "professorId": 7,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Scopus Q1",
-            "type": "publication"
-          }
-        ],
-        "professorId": 8,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "PhD rahbarlik",
-            "type": "supervision"
-          },
-          {
-            "count": 2,
-            "subType": "OAK xalqaro",
-            "type": "publication"
-          }
-        ],
-        "professorId": 9,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Scopus Q3",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Patent",
-            "type": "intellectual_property"
-          }
-        ],
-        "professorId": 10,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Darslik",
-            "type": "methodological_work"
-          },
-          {
-            "count": 2,
-            "subType": "Scopus Q4",
-            "type": "publication"
-          }
-        ],
-        "professorId": 11,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 3,
-            "subType": "Davlat granti arizasi",
-            "type": "project"
-          },
-          {
-            "count": 2,
-            "subType": "OAK respublika",
-            "type": "publication"
-          }
-        ],
-        "professorId": 12,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Xorijiy professor jalb qilish",
-            "type": "international_activity"
-          },
-          {
-            "count": 1,
-            "subType": "Scopus Q3",
-            "type": "publication"
-          }
-        ],
-        "professorId": 13,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Kengash a\u2019zoligi",
-            "type": "supervision"
-          },
-          {
-            "count": 1,
-            "subType": "Scopus Q1",
-            "type": "publication"
-          }
-        ],
-        "professorId": 14,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Xalqaro tanlov 1-o\u2018rin",
-            "type": "student_achievement"
-          },
-          {
-            "count": 2,
-            "subType": "Xalqaro konferensiya",
-            "type": "publication"
-          }
-        ],
-        "professorId": 15,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 2,
-            "subType": "Scopus Q4",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "O\u2018quv qo\u2018llanma",
-            "type": "methodological_work"
-          }
-        ],
-        "professorId": 16,
-        "year": 2026
-      },
-      {
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q2",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Bajarilayotgan davlat loyihasi",
-            "type": "project"
-          }
-        ],
-        "professorId": 17,
-        "year": 2026
-      },
-      {
-        "id": 18,
-        "planItems": [
-          {
-            "count": 4,
-            "subType": "OAK respublika",
-            "type": "publication"
-          }
-        ],
-        "professorId": 18,
-        "year": 2026
-      },
-      {
-        "id": 19,
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q3",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "PhD rahbarlik",
-            "type": "supervision"
-          }
-        ],
-        "professorId": 19,
-        "year": 2026
-      },
-      {
-        "id": 20,
-        "planItems": [
-          {
-            "count": 1,
-            "subType": "Scopus Q2",
-            "type": "publication"
-          },
-          {
-            "count": 1,
-            "subType": "Monografiya",
-            "type": "methodological_work"
-          }
-        ],
-        "professorId": 20,
-        "year": 2026
-      }
-    ],
+    "PLANS": [],
     "POSITIONS": [
-      "Stajor o\u2018qituvchi",
+      "Stajor o‘qituvchi",
       "Assistent",
-      "O\u2018qituvchi",
-      "Katta o\u2018qituvchi",
+      "O‘qituvchi",
+      "Katta o‘qituvchi",
       "Dotsent",
       "Professor",
       "Kafedra mudiri"
     ],
-    "PROFESSORS": [
-      {
-        "birthDate": "1975-03-15",
-        "degree": "DSc",
-        "departmentId": 4,
-        "employmentType": "Asosiy",
-        "firstName": "Ali",
-        "gender": "erkak",
-        "id": 1,
-        "lastName": "Karimov",
-        "patronymic": "Valiyevich",
-        "phone": "+998901234567",
-        "position": "Kafedra mudiri",
-        "staffUnit": 1,
-        "title": "Professor"
-      },
-      {
-        "birthDate": "1980-11-20",
-        "degree": "PhD",
-        "departmentId": 4,
-        "employmentType": "Asosiy",
-        "firstName": "Nodira",
-        "gender": "ayol",
-        "id": 2,
-        "lastName": "Valiyeva",
-        "patronymic": "Alisherovna",
-        "phone": "+998902345678",
-        "position": "Professor",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1982-07-01",
-        "degree": "PhD",
-        "departmentId": 3,
-        "employmentType": "Asosiy",
-        "firstName": "Sanjar",
-        "gender": "erkak",
-        "id": 3,
-        "lastName": "Sobirov",
-        "patronymic": "Bahodirovich",
-        "phone": "+998903456789",
-        "position": "Dotsent",
-        "staffUnit": 0.75,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1988-09-05",
-        "degree": "PhD",
-        "departmentId": 7,
-        "employmentType": "Asosiy",
-        "firstName": "Laylo",
-        "gender": "ayol",
-        "id": 4,
-        "lastName": "Nazarova",
-        "patronymic": "Anvarovna",
-        "phone": "+998904567890",
-        "position": "Katta o\u2018qituvchi",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1972-01-25",
-        "degree": "DSc",
-        "departmentId": 7,
-        "employmentType": "Asosiy",
-        "firstName": "Javohir",
-        "gender": "erkak",
-        "id": 5,
-        "lastName": "Qosimov",
-        "patronymic": "Erkinovich",
-        "phone": "+998905678901",
-        "position": "Professor",
-        "staffUnit": 1,
-        "title": "Professor"
-      },
-      {
-        "birthDate": "1995-04-12",
-        "degree": "Yo\u2018q",
-        "departmentId": 8,
-        "employmentType": "Ichki o\u2018rindosh",
-        "firstName": "Gulnora",
-        "gender": "ayol",
-        "id": 6,
-        "lastName": "Azizova",
-        "patronymic": "Rustamovna",
-        "phone": "+998906789012",
-        "position": "Assistent",
-        "staffUnit": 0.5,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1981-06-30",
-        "degree": "PhD",
-        "departmentId": 9,
-        "employmentType": "Asosiy",
-        "firstName": "Ulugbek",
-        "gender": "erkak",
-        "id": 7,
-        "lastName": "Teshayev",
-        "patronymic": "Nematovich",
-        "phone": "+998907890123",
-        "position": "Kafedra mudiri",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1968-08-19",
-        "degree": "DSc",
-        "departmentId": 10,
-        "employmentType": "Asosiy",
-        "firstName": "Timur",
-        "gender": "erkak",
-        "id": 8,
-        "lastName": "Yuldashev",
-        "patronymic": "Olimovich",
-        "phone": "+998908901234",
-        "position": "Professor",
-        "staffUnit": 1,
-        "title": "Professor"
-      },
-      {
-        "birthDate": "1990-02-28",
-        "degree": "PhD",
-        "departmentId": 1,
-        "employmentType": "Asosiy",
-        "firstName": "Madina",
-        "gender": "ayol",
-        "id": 9,
-        "lastName": "Abdullayeva",
-        "patronymic": "Zokirovna",
-        "phone": "+998909012345",
-        "position": "Katta o\u2018qituvchi",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1985-05-14",
-        "degree": "PhD",
-        "departmentId": 2,
-        "employmentType": "Asosiy",
-        "firstName": "Aziz",
-        "gender": "erkak",
-        "id": 10,
-        "lastName": "Saidov",
-        "patronymic": "Botirivich",
-        "phone": "+998911234567",
-        "position": "Dotsent",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1979-12-01",
-        "degree": "PhD",
-        "departmentId": 5,
-        "employmentType": "Asosiy",
-        "firstName": "Sevara",
-        "gender": "ayol",
-        "id": 11,
-        "lastName": "Usmonova",
-        "patronymic": "Karimovna",
-        "phone": "+998912345678",
-        "position": "Kafedra mudiri",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1992-10-10",
-        "degree": "Yo\u2018q",
-        "departmentId": 6,
-        "employmentType": "Tashqi o\u2018rindosh",
-        "firstName": "Sardor",
-        "gender": "erkak",
-        "id": 12,
-        "lastName": "Hakimov",
-        "patronymic": "Sobirovich",
-        "phone": "+998913456789",
-        "position": "O\u2018qituvchi",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1983-01-08",
-        "degree": "PhD",
-        "departmentId": 11,
-        "employmentType": "Asosiy",
-        "firstName": "Dilnoza",
-        "gender": "ayol",
-        "id": 13,
-        "lastName": "Ibragimova",
-        "patronymic": "Nazarovna",
-        "phone": "+998914567890",
-        "position": "Dotsent",
-        "staffUnit": 0.75,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1977-04-22",
-        "degree": "DSc",
-        "departmentId": 12,
-        "employmentType": "Asosiy",
-        "firstName": "Oybek",
-        "gender": "erkak",
-        "id": 14,
-        "lastName": "Zokirov",
-        "patronymic": "Qosimovich",
-        "phone": "+998915678901",
-        "position": "Professor",
-        "staffUnit": 1,
-        "title": "Professor"
-      },
-      {
-        "birthDate": "1998-07-17",
-        "degree": "Yo\u2018q",
-        "departmentId": 13,
-        "employmentType": "Asosiy",
-        "firstName": "Zarina",
-        "gender": "ayol",
-        "id": 15,
-        "lastName": "Qodirova",
-        "patronymic": "Azizovna",
-        "phone": "+998916789012",
-        "position": "Assistent",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1986-02-11",
-        "degree": "PhD",
-        "departmentId": 1,
-        "employmentType": "Asosiy",
-        "firstName": "Vali",
-        "gender": "erkak",
-        "id": 16,
-        "lastName": "Rahmatov",
-        "patronymic": "Ulugbekovich",
-        "phone": "+998931234567",
-        "position": "Katta o\u2018qituvchi",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1970-09-23",
-        "degree": "DSc",
-        "departmentId": 2,
-        "employmentType": "Asosiy",
-        "firstName": "Kamola",
-        "gender": "ayol",
-        "id": 17,
-        "lastName": "Kamalova",
-        "patronymic": "Timurovna",
-        "phone": "+998932345678",
-        "position": "Kafedra mudiri",
-        "staffUnit": 1,
-        "title": "Professor"
-      },
-      {
-        "birthDate": "1991-11-30",
-        "degree": "Yo\u2018q",
-        "departmentId": 3,
-        "employmentType": "Asosiy",
-        "firstName": "Sanjar",
-        "gender": "erkak",
-        "id": 18,
-        "lastName": "Sultanov",
-        "patronymic": "Sardorovich",
-        "phone": "+998933456789",
-        "position": "Assistent",
-        "staffUnit": 1,
-        "title": "Yo\u2018q"
-      },
-      {
-        "birthDate": "1984-06-15",
-        "degree": "PhD",
-        "departmentId": 8,
-        "employmentType": "Asosiy",
-        "firstName": "Shahnoza",
-        "gender": "ayol",
-        "id": 19,
-        "lastName": "Ganiyeva",
-        "patronymic": "Oybekovna",
-        "phone": "+998934567890",
-        "position": "Dotsent",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      },
-      {
-        "birthDate": "1976-12-25",
-        "degree": "PhD",
-        "departmentId": 10,
-        "employmentType": "Asosiy",
-        "firstName": "Javohir",
-        "gender": "erkak",
-        "id": 20,
-        "lastName": "Mannopov",
-        "patronymic": "Valiyevich",
-        "phone": "+998935678901",
-        "position": "Kafedra mudiri",
-        "staffUnit": 1,
-        "title": "Dotsent"
-      }
-    ],
-    "PROJECTS": [
-      {
-        "departmentId": 6,
-        "direction": "Fundamental",
-        "duration": 3,
-        "facultyId": 1,
-        "id": 1,
-        "leaderName": "Karimov Ali Valiyevich",
-        "leaderPosition": "Professor-o\u2018qituvchi",
-        "name": "Kvant hisoblashlar uchun yangi algoritmlar",
-        "totalFunding": 500,
-        "type": "Loyiha"
-      },
-      {
-        "departmentId": 5,
-        "direction": "Amaliy",
-        "duration": 2,
-        "facultyId": 1,
-        "id": 2,
-        "leaderName": "Usmonova Sevara Karimovna",
-        "leaderPosition": "Professor-o\u2018qituvchi",
-        "name": "Maktabgacha ta'limda raqamli pedagogika",
-        "totalFunding": 250,
-        "type": "Loyiha"
-      },
-      {
-        "departmentId": 7,
-        "direction": "Innovatsion",
-        "duration": 1,
-        "facultyId": 2,
-        "id": 3,
-        "leaderName": "Qosimov Javohir Erkinovich",
-        "leaderPosition": "Professor-o\u2018qituvchi",
-        "name": "O'zbek adabiyotining yangi qirralari",
-        "totalFunding": 150,
-        "type": "Loyiha"
-      },
-      {
-        "departmentId": 6,
-        "direction": "Innovatsion",
-        "duration": 1,
-        "facultyId": 1,
-        "id": 4,
-        "leaderName": "Sodiqov Anvar",
-        "leaderPosition": "Talaba",
-        "name": "EduAI - Sun'iy intellektli repetitor",
-        "totalFunding": 50,
-        "type": "Startap"
-      },
-      {
-        "departmentId": 7,
-        "direction": "Amaliy",
-        "duration": 4,
-        "facultyId": 2,
-        "id": 5,
-        "leaderName": "Nazarova Laylo Anvarovna",
-        "leaderPosition": "Professor-o\u2018qituvchi",
-        "name": "Erasmus+ xalqaro grant",
-        "totalFunding": 1200,
-        "type": "Grant"
-      },
-      {
-        "departmentId": 1,
-        "direction": "Innovatsion",
-        "duration": 2,
-        "facultyId": 1,
-        "id": 6,
-        "leaderName": "Abdullayeva Madina Zokirovna",
-        "leaderPosition": "Professor-o\u2018qituvchi",
-        "name": "Pedagogika Tech Spinoff",
-        "totalFunding": 80,
-        "type": "Spinoff"
-      }
-    ],
+    "PROFESSORS": [],
+    "PROJECTS": [],
     "PROJECT_DIRECTIONS": [
       "Innovatsion",
       "Amaliy",
@@ -954,7 +125,7 @@
       4
     ],
     "PROJECT_LEADER_POSITIONS": [
-      "Professor-o\u2018qituvchi",
+      "Professor-o‘qituvchi",
       "Ilmiy xodim",
       "Talaba"
     ],
@@ -994,7 +165,7 @@
           "description": "Nashr etilgan monografiya",
           "score": 6
         },
-        "O\u2018quv qo\u2018llanma": {
+        "O‘quv qo‘llanma": {
           "description": "Nashr etilgan o'quv qo'llanma",
           "score": 4
         }
@@ -1048,27 +219,27 @@
         }
       },
       "student_achievement": {
-        "Respublika tanlovi 1-o\u2018rin": {
+        "Respublika tanlovi 1-o‘rin": {
           "description": "Talabaning respublika tanlovidagi 1-o'rin g'olibligi",
           "score": 3
         },
-        "Respublika tanlovi 2-o\u2018rin": {
+        "Respublika tanlovi 2-o‘rin": {
           "description": "Talabaning respublika tanlovidagi 2-o'rin g'olibligi",
           "score": 2
         },
-        "Respublika tanlovi 3-o\u2018rin": {
+        "Respublika tanlovi 3-o‘rin": {
           "description": "Talabaning respublika tanlovidagi 3-o'rin g'olibligi",
           "score": 1
         },
-        "Xalqaro tanlov 1-o\u2018rin": {
+        "Xalqaro tanlov 1-o‘rin": {
           "description": "Talabaning xalqaro tanlovdagi 1-o'rin g'olibligi",
           "score": 6
         },
-        "Xalqaro tanlov 2-o\u2018rin": {
+        "Xalqaro tanlov 2-o‘rin": {
           "description": "Talabaning xalqaro tanlovdagi 2-o'rin g'olibligi",
           "score": 5
         },
-        "Xalqaro tanlov 3-o\u2018rin": {
+        "Xalqaro tanlov 3-o‘rin": {
           "description": "Talabaning xalqaro tanlovdagi 3-o'rin g'olibligi",
           "score": 4
         }
@@ -1078,7 +249,7 @@
           "description": "DSc dissertatsiyasiga ilmiy rahbarlik",
           "score": 15
         },
-        "Kengash a\u2019zoligi": {
+        "Kengash a’zoligi": {
           "description": "Ilmiy kengash a'zoligi",
           "score": 10
         },
@@ -1086,7 +257,7 @@
           "description": "PhD dissertatsiyasiga ilmiy rahbarlik",
           "score": 10
         },
-        "Seminar a\u2019zoligi": {
+        "Seminar a’zoligi": {
           "description": "Ilmiy seminar a'zoligi",
           "score": 5
         }
@@ -1115,40 +286,7 @@
       "10.00.02 - O'zbek adabiyoti",
       "07.00.01 - O'zbekiston tarixi"
     ],
-    "THESIS_DEFENSES": [
-      {
-        "councilNumber": "DSc.03/30.12.2019.Ped.01.02",
-        "defenseDate": "2023-05-20",
-        "defenseOrganization": "Nizomiy nomidagi TDPU",
-        "departmentId": 1,
-        "facultyId": 1,
-        "fieldOfScience": "Pedagogika fanlari",
-        "firstName": "Botir",
-        "id": 1,
-        "lastName": "Alimov",
-        "patronymic": "Karimovich",
-        "specialty": "13.00.01 - Pedagogika nazariyasi. Pedagogik ta'limotlar tarixi",
-        "supervisor": "Karimov A.V.",
-        "thesisTopic": "Zamonaviy ta'limda innovatsion metodlar",
-        "type": "PhD"
-      },
-      {
-        "councilNumber": "DSc.02/30.12.2019.Fil.01.01",
-        "defenseDate": "2024-01-15",
-        "defenseOrganization": "O'zR FA O'zbek tili, adabiyoti va folklori instituti",
-        "departmentId": 7,
-        "facultyId": 2,
-        "fieldOfScience": "Filologiya fanlari",
-        "firstName": "Dildora",
-        "id": 2,
-        "lastName": "Salimova",
-        "patronymic": "Erkinovna",
-        "specialty": "10.00.02 - O'zbek adabiyoti",
-        "supervisor": "Qosimov J.E.",
-        "thesisTopic": "XX asr o'zbek she'riyatida modernizm",
-        "type": "DSc"
-      }
-    ],
+    "THESIS_DEFENSES": [],
     "USERS": [
       {
         "id": 1,
