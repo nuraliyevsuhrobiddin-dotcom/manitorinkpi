@@ -3510,7 +3510,24 @@ function App() {
       try {
         const remoteState = await SupabaseState.load();
         const fallbackState = SupabaseState.loadLocal();
-        const { state: appState, source } = SupabaseState.chooseNewest(remoteState, fallbackState);
+        
+        let appState = null;
+        let source: 'remote' | 'local' | 'none' = 'none';
+        
+        if (!isSuperAdmin) {
+          if (remoteState) {
+            appState = remoteState;
+            source = 'remote';
+          } else {
+            appState = fallbackState;
+            source = fallbackState ? 'local' : 'none';
+          }
+        } else {
+          const result = SupabaseState.chooseNewest(remoteState, fallbackState);
+          appState = result.state;
+          source = result.source;
+        }
+
         if (cancelled || !appState) return;
         skipInitialRemoteSave.current = source !== 'local';
 
@@ -3556,6 +3573,7 @@ function App() {
 
   useEffect(() => {
     if (!remoteStateReady) return;
+    if (!isSuperAdmin) return; // ONLY admin can save state to Supabase/LocalStorage
     if (skipInitialRemoteSave.current) {
       skipInitialRemoteSave.current = false;
       return;
