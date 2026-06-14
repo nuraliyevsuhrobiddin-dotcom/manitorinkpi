@@ -3479,6 +3479,7 @@ function App() {
   const [remoteStateReady, setRemoteStateReady] = useState(false);
   const skipInitialRemoteSave = useRef(true);
   const lastSavedStateRef = useRef<string>('');
+  const saveDebounceRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
 
   const serializeState = useCallback((
     facultiesList: Faculty[],
@@ -3671,21 +3672,24 @@ function App() {
       [SupabaseState.savedAtKey]: new Date().toISOString(),
     };
 
+    // Save to localStorage immediately so data is never lost
     SupabaseState.saveLocal(stateToSave);
 
-    const timeoutId = window.setTimeout(() => {
+    // Use a ref-based debounce so the timer is NOT cancelled by React's
+    // useEffect cleanup when dependencies change. This prevents saves from
+    // being dropped when the admin navigates or interacts with the UI.
+    if (saveDebounceRef.current !== null) {
+      window.clearTimeout(saveDebounceRef.current);
+    }
+    saveDebounceRef.current = window.setTimeout(() => {
+      saveDebounceRef.current = null;
       console.log('KPI-Save: Sending state to Supabase API...');
       SupabaseState.save(stateToSave, AuthService.getAccessToken())
         .then(() => console.log('KPI-Save: Successfully saved to Supabase!'))
         .catch((error) => {
           console.error('Supabase state save error:', error);
         });
-    }, 3000);
-
-    return () => {
-      console.log('KPI-Save: Cleaning up timeout');
-      window.clearTimeout(timeoutId);
-    };
+    }, 1500);
   }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses, serializeState]);
 
   const getScore = useCallback((type: string, subType: string): number => {
