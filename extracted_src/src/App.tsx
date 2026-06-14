@@ -3617,9 +3617,11 @@ function App() {
   }, []);
 
   useEffect(() => {
+    console.log('KPI-Save: useEffect triggered. Ready:', remoteStateReady, 'isSuperAdmin:', isSuperAdmin, 'skipInitialRemoteSave:', skipInitialRemoteSave.current);
     if (!remoteStateReady) return;
     if (!isSuperAdmin) return; // ONLY admin can save state to Supabase/LocalStorage
     if (skipInitialRemoteSave.current) {
+      console.log('KPI-Save: Skipping initial save run');
       skipInitialRemoteSave.current = false;
       return;
     }
@@ -3638,11 +3640,13 @@ function App() {
       thesisDefenses
     );
 
+    console.log('KPI-Save: comparing state strings. Is identical:', currentSerialized === lastSavedStateRef.current);
     if (currentSerialized === lastSavedStateRef.current) {
       return;
     }
 
     lastSavedStateRef.current = currentSerialized;
+    console.log('KPI-Save: State is dirty, saving to Supabase and LocalStorage...');
 
     const stateToSave = {
       FACULTIES: faculties,
@@ -3670,12 +3674,18 @@ function App() {
     SupabaseState.saveLocal(stateToSave);
 
     const timeoutId = window.setTimeout(() => {
-      SupabaseState.save(stateToSave, AuthService.getAccessToken()).catch((error) => {
-        console.error('Supabase state save error:', error);
-      });
+      console.log('KPI-Save: Sending state to Supabase API...');
+      SupabaseState.save(stateToSave, AuthService.getAccessToken())
+        .then(() => console.log('KPI-Save: Successfully saved to Supabase!'))
+        .catch((error) => {
+          console.error('Supabase state save error:', error);
+        });
     }, 3000);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      console.log('KPI-Save: Cleaning up timeout');
+      window.clearTimeout(timeoutId);
+    };
   }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses, serializeState]);
 
   const getScore = useCallback((type: string, subType: string): number => {
