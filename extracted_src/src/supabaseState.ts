@@ -55,9 +55,8 @@ export const SupabaseState = {
   async load(): Promise<AppState | null> {
     if (!this.isConfigured) return null;
 
-    const cacheBuster = `t=${Date.now()}`;
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/${stateTable}?id=eq.${encodeURIComponent(stateId)}&select=data&${cacheBuster}`,
+      `${supabaseUrl}/rest/v1/${stateTable}?id=eq.${encodeURIComponent(stateId)}&select=data`,
       { 
         headers: headers(),
         cache: 'no-store'
