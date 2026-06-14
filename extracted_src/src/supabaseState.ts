@@ -11,6 +11,8 @@ const headers = (accessToken = supabaseAnonKey) => ({
   apikey: supabaseAnonKey,
   Authorization: `Bearer ${accessToken}`,
   'Content-Type': 'application/json',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache',
 });
 
 export const SupabaseState = {
@@ -53,9 +55,13 @@ export const SupabaseState = {
   async load(): Promise<AppState | null> {
     if (!this.isConfigured) return null;
 
+    const cacheBuster = `t=${Date.now()}`;
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/${stateTable}?id=eq.${encodeURIComponent(stateId)}&select=data`,
-      { headers: headers() }
+      `${supabaseUrl}/rest/v1/${stateTable}?id=eq.${encodeURIComponent(stateId)}&select=data&${cacheBuster}`,
+      { 
+        headers: headers(),
+        cache: 'no-store'
+      }
     );
 
     if (!response.ok) {
