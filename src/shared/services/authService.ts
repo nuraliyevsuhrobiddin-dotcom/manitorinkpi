@@ -7,6 +7,7 @@ export interface AuthCredentials {
 
 export interface AuthProvider {
   getCurrentUser(): User | null;
+  getAccessToken(): string | null;
   login(credentials: AuthCredentials): Promise<User | null>;
   logout(): Promise<void>;
 }
@@ -34,9 +35,15 @@ const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
 
 const isAdminUser = (authUser: SupabaseAuthUser) => {
   const email = authUser.email?.toLowerCase();
-  const metadataRole = String(authUser.user_metadata?.role || authUser.app_metadata?.role || '').toLowerCase();
+  const metadataRole = String(
+    authUser.user_metadata?.role || authUser.app_metadata?.role || ''
+  ).toLowerCase();
 
-  return metadataRole === 'admin' || metadataRole === 'superadmin' || Boolean(email && adminEmails.includes(email));
+  return (
+    metadataRole === 'admin' ||
+    metadataRole === 'superadmin' ||
+    Boolean(email && adminEmails.includes(email))
+  );
 };
 
 const toAppUser = (authUser: SupabaseAuthUser): User | null => {
@@ -50,16 +57,24 @@ const toAppUser = (authUser: SupabaseAuthUser): User | null => {
 };
 
 class SupabaseAuthProvider implements AuthProvider {
-  getCurrentUser(): User | null {
+  private getStoredSession(): SupabaseAuthSession | null {
     try {
       const storedSession = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (!storedSession) return null;
-
-      const session = JSON.parse(storedSession) as SupabaseAuthSession;
-      return toAppUser(session.user);
+      return storedSession
+        ? (JSON.parse(storedSession) as SupabaseAuthSession)
+        : null;
     } catch {
       return null;
     }
+  }
+
+  getCurrentUser(): User | null {
+    const session = this.getStoredSession();
+    return session ? toAppUser(session.user) : null;
+  }
+
+  getAccessToken(): string | null {
+    return this.getStoredSession()?.access_token || null;
   }
 
   async login({ username, password }: AuthCredentials): Promise<User | null> {
@@ -69,14 +84,17 @@ class SupabaseAuthProvider implements AuthProvider {
       return null;
     }
 
-    const response = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
-      method: 'POST',
-      headers: {
-        apikey: supabaseAnonKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await fetch(
+      `${supabaseUrl}/auth/v1/token?grant_type=password`,
+      {
+        method: 'POST',
+        headers: {
+          apikey: supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      }
+    );
 
     if (!response.ok) {
       return null;

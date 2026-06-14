@@ -23,6 +23,18 @@ execute function public.set_updated_at();
 
 alter table public.app_state enable row level security;
 
+create or replace function public.is_app_admin()
+returns boolean
+language sql
+stable
+as $$
+  select coalesce(
+    lower(auth.jwt() -> 'user_metadata' ->> 'role') in ('admin', 'superadmin')
+    or lower(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'superadmin'),
+    false
+  );
+$$;
+
 drop policy if exists "Allow anon read app state" on public.app_state;
 create policy "Allow anon read app state"
 on public.app_state
@@ -31,16 +43,19 @@ to anon
 using (true);
 
 drop policy if exists "Allow anon upsert app state" on public.app_state;
-create policy "Allow anon upsert app state"
+drop policy if exists "Allow anon update app state" on public.app_state;
+drop policy if exists "Allow admin insert app state" on public.app_state;
+drop policy if exists "Allow admin update app state" on public.app_state;
+
+create policy "Allow admin insert app state"
 on public.app_state
 for insert
-to anon
-with check (true);
+to authenticated
+with check (public.is_app_admin());
 
-drop policy if exists "Allow anon update app state" on public.app_state;
-create policy "Allow anon update app state"
+create policy "Allow admin update app state"
 on public.app_state
 for update
-to anon
-using (true)
-with check (true);
+to authenticated
+using (public.is_app_admin())
+with check (public.is_app_admin());

@@ -7,9 +7,9 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const stateTable = import.meta.env.VITE_SUPABASE_STATE_TABLE || 'app_state';
 const stateId = import.meta.env.VITE_SUPABASE_STATE_ID || 'kpi_constants';
 
-const headers = () => ({
+const headers = (accessToken = supabaseAnonKey) => ({
   apikey: supabaseAnonKey,
-  Authorization: `Bearer ${supabaseAnonKey}`,
+  Authorization: `Bearer ${accessToken}`,
   'Content-Type': 'application/json',
 });
 
@@ -66,9 +66,12 @@ export const SupabaseState = {
     return rows?.[0]?.data ?? null;
   },
 
-  async save(data: AppState): Promise<void> {
+  async save(data: AppState, accessToken?: string | null): Promise<void> {
     this.saveLocal(data);
     if (!this.isConfigured) return;
+    if (!accessToken) {
+      throw new Error('Supabase save skipped: admin session token is missing');
+    }
 
     const response = await fetch(
       `${supabaseUrl}/rest/v1/${stateTable}?on_conflict=id`,
@@ -76,7 +79,7 @@ export const SupabaseState = {
         method: 'POST',
         keepalive: true,
         headers: {
-          ...headers(),
+          ...headers(accessToken),
           Prefer: 'resolution=merge-duplicates,return=minimal',
         },
         body: JSON.stringify({ id: stateId, data }),

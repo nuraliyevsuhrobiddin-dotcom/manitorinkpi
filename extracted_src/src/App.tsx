@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CONSTANTS } from './data.js';
 import { ASSETS } from './assetManifest.js';
@@ -10,7 +9,7 @@ import { AuthService } from '../../src/shared/services/authService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BarChart3, Building, Users, GraduationCap, ChevronDown, ChevronRight,
-  BookOpen, FlaskConical, Award, FileText, Lightbulb, Briefcase, Languages, Trophy, UserCheck, Star, Filter,
+  BookOpen, Award, FileText, Lightbulb, Briefcase, Languages, Trophy, UserCheck, Star, Filter,
   Settings, PlusCircle, Edit, Trash2, Eye, TrendingUp, FileSpreadsheet, Edit3, LogIn, Search, TrendingDown, UserCog, ClipboardList, ChevronUp, UserPlus,
   Rocket, Target, Handshake, BookCopy, DollarSign
 } from 'lucide-react';
@@ -27,6 +26,8 @@ type PlanItem = { type: string, subType: string, count: number };
 type Plan = { professorId: number, year: number, planItems: PlanItem[] };
 type Project = typeof CONSTANTS.PROJECTS[0];
 type ScoringSystem = typeof CONSTANTS.SCORING_SYSTEM;
+type ScoringCriterion = { score: number; description: string };
+type ScoringCategory = { [subType: string]: ScoringCriterion };
 type ThesisDefense = typeof CONSTANTS.THESIS_DEFENSES[0];
 type Filters = {
   gender: string[];
@@ -72,10 +73,6 @@ const renderGrowthIndicator = (growth: number | null) => {
     const icon = isPositive ? <TrendingUp size={16} className="inline mr-1" /> : <TrendingDown size={16} className="inline mr-1" />;
     return <span className={`${color} font-semibold`}>{icon}{growth.toFixed(1)}%</span>;
 };
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('uz-UZ', { style: 'currency', currency: 'UZS', minimumFractionDigits: 0 }).format(value);
-};
-
 const formatFundingCompact = (valueInMillions: number) => {
     if (valueInMillions >= 1000) {
         return `${(valueInMillions / 1000).toFixed(2)} mlrd`;
@@ -357,8 +354,8 @@ const EnhancedCriteriaStatistics: React.FC<{
         let totalAmaldasi = 0;
 
         if (dataForView[entityId]) {
-            Object.values(dataForView[entityId]).forEach(subTypes => {
-                Object.values(subTypes).forEach(values => {
+            Object.values(dataForView[entityId]).forEach((subTypes: { [subType: string]: { plan: number; actual: number } }) => {
+                Object.values(subTypes).forEach((values) => {
                     totalSoni += values.actual;
                     totalRejasi += values.plan;
                     totalAmaldasi += values.actual;
@@ -389,10 +386,10 @@ const EnhancedCriteriaStatistics: React.FC<{
             </tr>
           </thead>
           <tbody>
-            {Object.entries(scoringSystem).map(([type, subTypes]) => (
+            {Object.entries(scoringSystem as ScoringSystem).map(([type, subTypes]) => (
               <React.Fragment key={type}>
                 <tr className="bg-gray-100 font-bold"><td colSpan={1 + items.length * 3} className="px-4 py-2 capitalize sticky left-0 bg-gray-100 z-10">{type.replace(/_/g, ' ')}</td></tr>
-                {Object.keys(subTypes).map(subType => {
+                {Object.keys(subTypes as ScoringCategory).map(subType => {
                   return (
                     <tr key={subType} className="bg-white border-b">
                       <td className="px-4 py-2 font-medium sticky left-0 bg-white z-10">{subType}</td>
@@ -1017,7 +1014,7 @@ const ProfessorFilterControls: React.FC<{ filters: Filters, onFilterChange: (fil
   );
 };
 
-const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void }> = ({ user, data, achievements, setAchievements, professors, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters }) => {
+const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void }> = ({ data, achievements, setAchievements, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters }) => {
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1160,7 +1157,7 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
   }
 
   const handleExport = () => {
-    const dataToExport = professorsToDisplay.map((prof, index) => ({
+    const dataToExport = professorsToDisplay.map((prof: any, index: number) => ({
       '№': (currentPage - 1) * pageSize + index + 1,
       'F.I.Sh.': getProfessorName(prof),
       'Jinsi': prof.gender,
@@ -1413,9 +1410,7 @@ const DataManagementPage: React.FC<{
   specialties: string[];
   fieldsOfScience: string[];
   defenseTypes: string[];
-}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, achievements, setAchievements, plans, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, specialties, fieldsOfScience, defenseTypes }) => {
-  
-  const isSuperAdmin = user.role === 'superadmin';
+}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, setAchievements, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, specialties, fieldsOfScience, defenseTypes }) => {
 
   const tabs = [
     { id: 'faculties', label: 'Fakultetlar', icon: Building },
@@ -1546,13 +1541,13 @@ const DataManagementPage: React.FC<{
   const handleEditProject = () => { setProjects(p => p.map(proj => proj.id === editProjectModal.project.id ? { ...proj, ...editProjForm, facultyId: Number(editProjForm.facultyId), departmentId: Number(editProjForm.departmentId), totalFunding: Number(editProjForm.totalFunding), duration: Number(editProjForm.duration) } : proj)); setEditProjectModal({ open: false, project: null }); };
   const handleDeleteProject = () => { setProjects(p => p.filter(proj => proj.id !== deleteProjectModal.project.id)); setDeleteProjectModal({ open: false, project: null }); };
   const handleProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProjForm(p => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o‘qituvchi') { newState.leaderName = ''; } return newState; }); };
-  const handleEditProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setEditProjForm(p => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o‘qituvchi') { newState.leaderName = ''; } return newState; }); };
+  const handleEditProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setEditProjForm((p: any) => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o‘qituvchi') { newState.leaderName = ''; } return newState; }); };
   const filteredDeptsForForm = useMemo(() => { if (!projForm.facultyId) return []; return departments.filter(d => d.facultyId === Number(projForm.facultyId)); }, [projForm.facultyId, departments]);
   const filteredDeptsForEditForm = useMemo(() => { if (!editProjForm.facultyId) return []; return departments.filter(d => d.facultyId === Number(editProjForm.facultyId)); }, [editProjForm.facultyId, departments]);
 
-  const handleAddCriterion = (e: React.FormEvent) => { e.preventDefault(); const { type, subType, score, description } = criterionForm; if (!type || !subType || !score) return; setScoringSystem(p => { const n = JSON.parse(JSON.stringify(p)); if (!n[type]) n[type] = {}; n[type][subType] = { score: Number(score), description }; return n; }); setCriterionForm({ type: '', subType: '', score: '', description: '' }); };
-  const handleEditCriterion = () => { const { type, subType, data } = editCriterionModal; setScoringSystem(p => { const n = JSON.parse(JSON.stringify(p)); n[type][subType] = { score: Number(data.score), description: data.description }; return n; }); setEditCriterionModal({ open: false, type: '', subType: '', data: null }); };
-  const handleDeleteCriterion = () => { const { type, subType } = deleteCriterionModal; setScoringSystem(p => { const n = JSON.parse(JSON.stringify(p)); delete n[type][subType]; if (Object.keys(n[type]).length === 0) delete n[type]; return n; }); setDeleteCriterionModal({ open: false, type: '', subType: '' }); };
+  const handleAddCriterion = (e: React.FormEvent) => { e.preventDefault(); const { type, subType, score, description } = criterionForm; if (!type || !subType || !score) return; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); if (!n[type]) n[type] = {}; n[type][subType] = { score: Number(score), description }; return n; }); setCriterionForm({ type: '', subType: '', score: '', description: '' }); };
+  const handleEditCriterion = () => { const { type, subType, data } = editCriterionModal; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); n[type][subType] = { score: Number(data.score), description: data.description }; return n; }); setEditCriterionModal({ open: false, type: '', subType: '', data: null }); };
+  const handleDeleteCriterion = () => { const { type, subType } = deleteCriterionModal; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); delete n[type][subType]; if (Object.keys(n[type]).length === 0) delete n[type]; return n; }); setDeleteCriterionModal({ open: false, type: '', subType: '' }); };
   const handleEditCriterionType = () => {
     const { oldType, newType } = editCriterionTypeModal;
     if (!newType || oldType === newType) {
@@ -1560,7 +1555,7 @@ const DataManagementPage: React.FC<{
       return;
     }
 
-    setScoringSystem(prev => {
+    setScoringSystem((prev: ScoringSystem) => {
       const newSystem = { ...prev };
       if (newSystem[oldType]) {
         newSystem[newType] = newSystem[oldType];
@@ -1583,7 +1578,7 @@ const DataManagementPage: React.FC<{
     setEditCriterionTypeModal({ open: false, oldType: '', newType: '' });
   };
 
-  const handleAddUser = (e: React.FormEvent) => { e.preventDefault(); if (!userForm.username) return; const newUser: any = { id: Date.now(), username: userForm.username, role: userForm.role }; setUsers(p => [...p, newUser]); setUserForm({ username: '', role: 'guest' }); };
+  const handleAddUser = (e: React.FormEvent) => { e.preventDefault(); if (!userForm.username) return; const newUser: any = { id: Date.now(), username: userForm.username, role: userForm.role }; setUsers((p: User[]) => [...p, newUser]); setUserForm({ username: '', role: 'guest' }); };
   const handleEditUser = () => { setEditUserModal({ open: false, user: null }); };
   const handleDeleteUser = () => { setUsers(p => p.filter(u => u.id !== deleteUserModal.user.id)); setDeleteUserModal({ open: false, user: null }); };
 
@@ -1609,7 +1604,7 @@ const DataManagementPage: React.FC<{
   };
   const handleEditDefenseFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setEditDefenseForm(p => {
+    setEditDefenseForm((p: any) => {
       const newState = { ...p, [name]: value };
       if (name === 'facultyId') {
         newState.departmentId = '' as any;
@@ -1952,7 +1947,7 @@ const DataManagementPage: React.FC<{
             </Card>
             <Card>
               <h3 className="text-lg font-semibold mb-4">Mavjud mezonlar</h3>
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto">{Object.entries(filteredCriteria).map(([type, subTypes]) => (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto">{Object.entries(filteredCriteria as ScoringSystem).map(([type, subTypes]) => (
                 <div key={type}>
                   <h4 className="font-bold text-md capitalize mb-2 flex items-center">
                     {type.replace(/_/g, ' ')}
@@ -1960,7 +1955,7 @@ const DataManagementPage: React.FC<{
                       <Edit3 size={14} />
                     </button>
                   </h4>
-                  <ul className="space-y-1 pl-4">{Object.entries(subTypes).map(([subType, data]) => (
+                  <ul className="space-y-1 pl-4">{Object.entries(subTypes as ScoringCategory).map(([subType, data]) => (
                     <li key={subType} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded">
                       <div><span>{subType}</span><p className="text-xs text-gray-500">{data.description}</p></div>
                       <div className="flex items-center flex-shrink-0 pl-4">
@@ -2016,7 +2011,7 @@ const DataManagementPage: React.FC<{
                 <li key={u.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center">
                   <span><span className="font-semibold">{u.username}</span><span className="text-xs text-gray-500 ml-2">{u.role}</span></span>
                   {u.id !== user.id && <span>
-                    <button onClick={() => { setEditUserModal({ open: true, user: u }); setEditUserPassword(''); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                    <button onClick={() => setEditUserModal({ open: true, user: u })} className="text-green-600 mr-2"><Edit size={16} /></button>
                     <button onClick={() => setDeleteUserModal({ open: true, user: u })} className="text-red-600"><Trash2 size={16} /></button>
                   </span>}
                 </li>))}
@@ -2721,7 +2716,7 @@ const ScientificProjectsPage: React.FC<{
   projectLeaderPositions: string[];
   projectDurations: number[];
   projectTypeCounts: { [key: string]: number };
-}> = ({ projects, professors, faculties, departments, projectTypes, projectDirections, projectLeaderPositions, projectDurations, projectTypeCounts }) => {
+}> = ({ projects, faculties, departments, projectTypes, projectLeaderPositions, projectDurations, projectTypeCounts }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     type: '',
@@ -2774,8 +2769,8 @@ const ScientificProjectsPage: React.FC<{
 
     return {
       totalFunding,
-      byFaculty: Object.entries(byFaculty).map(([label, value]) => ({ label, value })).sort((a, b) => b.value.count - a.value.count),
-      byDepartment: Object.entries(byDepartment).map(([label, value]) => ({ label, value })).sort((a, b) => b.value.count - a.value.count),
+      byFaculty: Object.entries(byFaculty).map(([label, value]) => ({ label, value })).sort((a: any, b: any) => b.value.count - a.value.count),
+      byDepartment: Object.entries(byDepartment).map(([label, value]) => ({ label, value })).sort((a: any, b: any) => b.value.count - a.value.count),
     };
   }, [projects, faculties, departments, projectTypes]);
 
@@ -3451,7 +3446,7 @@ const LoginModal: React.FC<{
 
 // Asosiy ilova
 function App() {
-  const guestUser = useMemo(() => CONSTANTS.USERS.find(u => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
+  const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
   
   const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
   const [loginError, setLoginError] = useState('');
@@ -3467,7 +3462,6 @@ function App() {
 
   // Permissions
   const isSuperAdmin = user?.role === 'superadmin';
-  const canManageSystem = isSuperAdmin;
   const canManageProfessors = isSuperAdmin;
 
   // Ma'lumotlarni state'ga ko'chirish
@@ -3605,13 +3599,13 @@ function App() {
     SupabaseState.saveLocal(stateToSave);
 
     const timeoutId = window.setTimeout(() => {
-      SupabaseState.save(stateToSave).catch((error) => {
+      SupabaseState.save(stateToSave, AuthService.getAccessToken()).catch((error) => {
         console.error('Supabase state save error:', error);
       });
     }, 3000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [remoteStateReady, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
+  }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
 
   const getScore = useCallback((type: string, subType: string): number => {
     // @ts-ignore
@@ -3620,7 +3614,10 @@ function App() {
 
   // Processed data for selected year
   const processedData = useMemo(() => {
-    const totalCriteriaCount = Object.values(scoringSystem).reduce((sum, type) => sum + Object.keys(type).length, 0);
+    const totalCriteriaCount = (Object.values(scoringSystem as Record<string, ScoringCategory>) as ScoringCategory[]).reduce(
+      (sum: number, type: ScoringCategory) => sum + Object.keys(type).length,
+      0
+    );
 
     const professorsWithDetails = professors.map(prof => {
       let totalScore = 0;
