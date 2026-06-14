@@ -3478,6 +3478,35 @@ function App() {
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
   const [remoteStateReady, setRemoteStateReady] = useState(false);
   const skipInitialRemoteSave = useRef(true);
+  const lastSavedStateRef = useRef<string>('');
+
+  const serializeState = useCallback((
+    facultiesList: Faculty[],
+    departmentsList: Department[],
+    divisionsList: Division[],
+    positionsList: string[],
+    projectsList: Project[],
+    professorsList: Professor[],
+    plansList: Plan[],
+    achievementsList: Achievement[],
+    scoringSystemObj: ScoringSystem,
+    usersList: User[],
+    thesisDefensesList: ThesisDefense[]
+  ) => {
+    return JSON.stringify({
+      FACULTIES: facultiesList,
+      DEPARTMENTS: departmentsList,
+      DIVISIONS: divisionsList,
+      POSITIONS: positionsList,
+      PROJECTS: projectsList,
+      PROFESSORS: professorsList,
+      PLANS: plansList,
+      ACHIEVEMENTS: achievementsList,
+      SCORING_SYSTEM: scoringSystemObj,
+      USERS: stripUserSecrets(usersList),
+      THESIS_DEFENSES: thesisDefensesList,
+    });
+  }, []);
 
   const availableReportYears = useMemo(() => {
     const years = new Set<number>([selectedYear, 2026]);
@@ -3508,18 +3537,12 @@ function App() {
         let appState = null;
         let source: 'remote' | 'local' | 'none' = 'none';
         
-        if (!isSuperAdmin) {
-          if (remoteState) {
-            appState = remoteState;
-            source = 'remote';
-          } else {
-            appState = fallbackState;
-            source = fallbackState ? 'local' : 'none';
-          }
+        if (remoteState) {
+          appState = remoteState;
+          source = 'remote';
         } else {
-          const result = SupabaseState.chooseNewest(remoteState, fallbackState);
-          appState = result.state;
-          source = result.source;
+          appState = fallbackState;
+          source = fallbackState ? 'local' : 'none';
         }
 
         if (cancelled || !appState) return;
@@ -3536,6 +3559,20 @@ function App() {
         setProjects((appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
         setScoringSystem((appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
         setThesisDefenses((appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+
+        lastSavedStateRef.current = serializeState(
+          (appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES,
+          (appState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS,
+          (appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS,
+          (appState.POSITIONS as string[]) || CONSTANTS.POSITIONS,
+          (appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS,
+          (appState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS,
+          (appState.PLANS as Plan[]) || CONSTANTS.PLANS,
+          (appState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS,
+          (appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM,
+          (appState.USERS as User[]) || CONSTANTS.USERS,
+          (appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
+        );
       } catch (error) {
         console.error('Supabase state load error:', error);
         const fallbackState = SupabaseState.loadLocal();
@@ -3553,6 +3590,20 @@ function App() {
         setProjects((fallbackState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
         setScoringSystem((fallbackState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
         setThesisDefenses((fallbackState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+
+        lastSavedStateRef.current = serializeState(
+          (fallbackState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES,
+          (fallbackState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS,
+          (fallbackState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS,
+          (fallbackState.POSITIONS as string[]) || CONSTANTS.POSITIONS,
+          (fallbackState.PROJECTS as Project[]) || CONSTANTS.PROJECTS,
+          (fallbackState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS,
+          (fallbackState.PLANS as Plan[]) || CONSTANTS.PLANS,
+          (fallbackState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS,
+          (fallbackState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM,
+          (fallbackState.USERS as User[]) || CONSTANTS.USERS,
+          (fallbackState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
+        );
       } finally {
         if (!cancelled) setRemoteStateReady(true);
       }
@@ -3572,6 +3623,26 @@ function App() {
       skipInitialRemoteSave.current = false;
       return;
     }
+
+    const currentSerialized = serializeState(
+      faculties,
+      departments,
+      divisions,
+      positions,
+      projects,
+      professors,
+      plans,
+      achievements,
+      scoringSystem,
+      users,
+      thesisDefenses
+    );
+
+    if (currentSerialized === lastSavedStateRef.current) {
+      return;
+    }
+
+    lastSavedStateRef.current = currentSerialized;
 
     const stateToSave = {
       FACULTIES: faculties,
@@ -3605,7 +3676,7 @@ function App() {
     }, 3000);
 
     return () => window.clearTimeout(timeoutId);
-  }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses]);
+  }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses, serializeState]);
 
   const getScore = useCallback((type: string, subType: string): number => {
     // @ts-ignore
