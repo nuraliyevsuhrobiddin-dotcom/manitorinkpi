@@ -3478,8 +3478,9 @@ function App() {
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
   const [remoteStateReady, setRemoteStateReady] = useState(false);
   const skipInitialRemoteSave = useRef(true);
+  const forceNextRemoteSave = useRef(false);
   const lastSavedStateRef = useRef<string>('');
-  const saveDebounceRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const saveDebounceRef = useRef<number | null>(null);
 
   const serializeState = useCallback((
     facultiesList: Faculty[],
@@ -3543,6 +3544,7 @@ function App() {
 
         if (cancelled || !appState) return;
         skipInitialRemoteSave.current = source !== 'local';
+        forceNextRemoteSave.current = source === 'local';
 
         setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
         setFaculties((appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
@@ -3574,6 +3576,7 @@ function App() {
         const fallbackState = SupabaseState.loadLocal();
         if (cancelled || !fallbackState) return;
         skipInitialRemoteSave.current = false;
+        forceNextRemoteSave.current = true;
 
         setUsers(stripUserSecrets((fallbackState.USERS as User[]) || CONSTANTS.USERS) as User[]);
         setFaculties((fallbackState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
@@ -3613,11 +3616,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    console.log('KPI-Save: useEffect triggered. Ready:', remoteStateReady, 'isSuperAdmin:', isSuperAdmin, 'skipInitialRemoteSave:', skipInitialRemoteSave.current);
     if (!remoteStateReady) return;
     if (!isSuperAdmin) return; // ONLY admin can save state to Supabase/LocalStorage
     if (skipInitialRemoteSave.current) {
-      console.log('KPI-Save: Skipping initial save run');
       skipInitialRemoteSave.current = false;
       return;
     }
@@ -3636,13 +3637,14 @@ function App() {
       thesisDefenses
     );
 
-    console.log('KPI-Save: comparing state strings. Is identical:', currentSerialized === lastSavedStateRef.current);
-    if (currentSerialized === lastSavedStateRef.current) {
+    const forceSave = forceNextRemoteSave.current;
+    forceNextRemoteSave.current = false;
+
+    if (!forceSave && currentSerialized === lastSavedStateRef.current) {
       return;
     }
 
     lastSavedStateRef.current = currentSerialized;
-    console.log('KPI-Save: State is dirty, saving to Supabase and LocalStorage...');
 
     const stateToSave = {
       FACULTIES: faculties,
@@ -3678,9 +3680,7 @@ function App() {
     }
     saveDebounceRef.current = window.setTimeout(() => {
       saveDebounceRef.current = null;
-      console.log('KPI-Save: Sending state to Supabase API...');
       SupabaseState.save(stateToSave, AuthService.getAccessToken())
-        .then(() => console.log('KPI-Save: Successfully saved to Supabase!'))
         .catch((error) => {
           console.error('Supabase state save error:', error);
         });

@@ -30,7 +30,8 @@ stable
 as $$
   select coalesce(
     lower(auth.jwt() -> 'user_metadata' ->> 'role') in ('admin', 'superadmin')
-    or lower(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'superadmin'),
+    or lower(auth.jwt() -> 'app_metadata' ->> 'role') in ('admin', 'superadmin')
+    or lower(auth.jwt() ->> 'email') in ('admin@example.com'),
     false
   );
 $$;
@@ -40,6 +41,13 @@ create policy "Allow anon read app state"
 on public.app_state
 for select
 to anon
+using (true);
+
+drop policy if exists "Allow authenticated read app state" on public.app_state;
+create policy "Allow authenticated read app state"
+on public.app_state
+for select
+to authenticated
 using (true);
 
 drop policy if exists "Allow anon upsert app state" on public.app_state;
