@@ -3535,16 +3535,11 @@ function App() {
         const remoteState = await SupabaseState.load();
         const fallbackState = SupabaseState.loadLocal();
         
-        let appState = null;
-        let source: 'remote' | 'local' | 'none' = 'none';
-        
-        if (remoteState) {
-          appState = remoteState;
-          source = 'remote';
-        } else {
-          appState = fallbackState;
-          source = fallbackState ? 'local' : 'none';
-        }
+        // Use chooseNewest() to compare __savedAt timestamps.
+        // If the admin just added data (saved to localStorage immediately)
+        // but the page refreshed before Supabase synced, the local copy
+        // will be newer and must win — otherwise changes are silently lost.
+        const { state: appState, source } = SupabaseState.chooseNewest(remoteState, fallbackState);
 
         if (cancelled || !appState) return;
         skipInitialRemoteSave.current = source !== 'local';
