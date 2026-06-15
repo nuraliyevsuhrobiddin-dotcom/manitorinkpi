@@ -3,7 +3,14 @@ node_modules/
 dist/
 vite-dev.log
 vite-dev.err.log
-index-Cjzqlj2e.js
-index-Cjzqlj2e.js.map
+vite-*.log
+vite-*.err.log
+index-*.js
+index-*.js.map
 .DS_Store
 Thumbs.db
+assets/
+manifest.json
+volterManifest.json
+data.schema.json
+.sixth/
