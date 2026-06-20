@@ -1014,7 +1014,7 @@ const ProfessorFilterControls: React.FC<{ filters: Filters, onFilterChange: (fil
   );
 };
 
-const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void }> = ({ data, achievements, setAchievements, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters }) => {
+const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void, saveStatus: 'idle' | 'saving' | 'saved' | 'error', saveErrorMessage: string }> = ({ data, achievements, setAchievements, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters, saveStatus, saveErrorMessage }) => {
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1185,7 +1185,31 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Professor-o'qituvchilar</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Professor-o'qituvchilar</h1>
+          {canEdit && (
+            <div className="mt-2 flex items-center gap-2">
+              {saveStatus === 'saving' && (
+                <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
+                  <span className="mr-1 h-2 w-2 animate-pulse rounded-full bg-yellow-600" /> Saqlanmoqda...
+                </span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                  <span className="mr-1 h-2 w-2 rounded-full bg-green-600" /> Saqlandi
+                </span>
+              )}
+              {saveStatus === 'error' && (
+                <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">
+                  <span className="mr-1 h-2 w-2 rounded-full bg-red-600" /> Saqlashda xato
+                </span>
+              )}
+              {saveErrorMessage && (
+                <span className="text-xs text-red-600">{saveErrorMessage}</span>
+              )}
+            </div>
+          )}
+        </div>
         {canEdit && (
           <button onClick={handleExport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
             <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
@@ -3477,6 +3501,8 @@ function App() {
   const [scoringSystem, setScoringSystem] = useState<ScoringSystem>(CONSTANTS.SCORING_SYSTEM);
   const [thesisDefenses, setThesisDefenses] = useState<ThesisDefense[]>(CONSTANTS.THESIS_DEFENSES);
   const [remoteStateReady, setRemoteStateReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveErrorMessage, setSaveErrorMessage] = useState('');
   const skipInitialRemoteSave = useRef(true);
   const forceNextRemoteSave = useRef(false);
   const lastSavedStateRef = useRef<string>('');
@@ -3645,6 +3671,8 @@ function App() {
     }
 
     lastSavedStateRef.current = currentSerialized;
+    setSaveStatus('saving');
+    setSaveErrorMessage('');
 
     const stateToSave = {
       FACULTIES: faculties,
@@ -3681,8 +3709,13 @@ function App() {
     saveDebounceRef.current = window.setTimeout(() => {
       saveDebounceRef.current = null;
       SupabaseState.save(stateToSave, AuthService.getAccessToken())
+        .then(() => {
+          setSaveStatus('saved');
+        })
         .catch((error) => {
           console.error('Supabase state save error:', error);
+          setSaveStatus('error');
+          setSaveErrorMessage(error instanceof Error ? error.message : 'Saqlash vaqtida xato yuz berdi');
         });
     }, 1500);
   }, [remoteStateReady, isSuperAdmin, users, faculties, departments, divisions, positions, professors, achievements, plans, projects, scoringSystem, thesisDefenses, serializeState]);
@@ -3803,7 +3836,7 @@ function App() {
       case 'departments':
         return <RatingsPage data={processedData} type="department" />;
       case 'professors':
-        return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={canManageProfessors} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} />;
+        return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={canManageProfessors} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} saveStatus={saveStatus} saveErrorMessage={saveErrorMessage} />;
       case 'kpi':
         return <KPIPage
                   isSuperAdmin={isSuperAdmin}
@@ -3918,6 +3951,28 @@ function App() {
           selectedYear={selectedYear}
           user={user}
         />
+        {isSuperAdmin && (
+          <div className="px-6 pt-3">
+            {saveStatus === 'saving' && (
+              <div className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
+                <span className="mr-1 h-2 w-2 animate-pulse rounded-full bg-yellow-600" /> Saqlanmoqda...
+              </div>
+            )}
+            {saveStatus === 'saved' && (
+              <div className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                <span className="mr-1 h-2 w-2 rounded-full bg-green-600" /> Saqlandi
+              </div>
+            )}
+            {saveStatus === 'error' && (
+              <div className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">
+                <span className="mr-1 h-2 w-2 rounded-full bg-red-600" /> Saqlashda xato
+              </div>
+            )}
+            {saveErrorMessage && (
+              <span className="ml-2 text-xs text-red-600">{saveErrorMessage}</span>
+            )}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto p-6">
           <AnimatePresence mode="wait">
             <motion.div

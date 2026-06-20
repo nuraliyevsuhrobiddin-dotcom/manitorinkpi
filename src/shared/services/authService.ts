@@ -28,10 +28,13 @@ interface SupabaseAuthSession {
 const AUTH_STORAGE_KEY = 'kpi_admin_auth_session';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
-  .split(',')
-  .map((email: string) => email.trim().toLowerCase())
-  .filter(Boolean);
+const fallbackAdminEmails = ['timaganiyev102@gmail.com'];
+const adminEmails = new Set(
+  [...fallbackAdminEmails, ...(import.meta.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((email: string) => email.trim().toLowerCase())
+    .filter(Boolean)]
+);
 
 const isAdminUser = (authUser: SupabaseAuthUser) => {
   const email = authUser.email?.toLowerCase();
@@ -42,7 +45,7 @@ const isAdminUser = (authUser: SupabaseAuthUser) => {
   return (
     metadataRole === 'admin' ||
     metadataRole === 'superadmin' ||
-    Boolean(email && adminEmails.includes(email))
+    Boolean(email && adminEmails.has(email))
   );
 };
 
