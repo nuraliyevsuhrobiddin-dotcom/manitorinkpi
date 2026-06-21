@@ -6,6 +6,7 @@ import { MobileMenu } from './components/MobileMenu';
 import type { SidebarNavItem } from './components/Sidebar';
 import { SupabaseState } from './supabaseState';
 import { AuthService } from '../../src/shared/services/authService';
+import { DataService } from '../../src/shared/services/dataService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BarChart3, Building, Users, GraduationCap, ChevronDown, ChevronRight,
@@ -3557,6 +3558,37 @@ function App() {
   useEffect(() => {
     let cancelled = false;
 
+    const loadBaseData = async () => {
+      try {
+        const data = await DataService.init();
+        if (cancelled) return;
+
+        setUsers(stripUserSecrets((data.USERS as User[]) || CONSTANTS.USERS) as User[]);
+        setFaculties((data.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
+        setDepartments((data.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
+        setDivisions((data.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
+        setPositions((data.POSITIONS as string[]) || CONSTANTS.POSITIONS);
+        setProfessors((data.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
+        setAchievements((data.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
+        setPlans((data.PLANS as Plan[]) || CONSTANTS.PLANS);
+        setProjects((data.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
+        setScoringSystem((data.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
+        setThesisDefenses((data.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+      } catch (error) {
+        console.warn('DataService init failed, keeping default constants:', error);
+      }
+    };
+
+    loadBaseData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const loadRemoteState = async () => {
       try {
         const remoteState = await SupabaseState.load();
@@ -3709,7 +3741,12 @@ function App() {
     saveDebounceRef.current = window.setTimeout(() => {
       saveDebounceRef.current = null;
       SupabaseState.save(stateToSave, AuthService.getAccessToken())
-        .then(() => {
+        .then(async () => {
+          try {
+            await DataService.syncToSupabase();
+          } catch (syncError) {
+            console.warn('DataService sync warning:', syncError);
+          }
           setSaveStatus('saved');
         })
         .catch((error) => {

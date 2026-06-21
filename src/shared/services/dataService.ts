@@ -14,6 +14,183 @@ import {
 } from '../types';
 
 const STORAGE_KEY = 'kpi_system_data';
+const SUPABASE_REST_PATHS = {
+  faculties: 'faculties',
+  departments: 'departments',
+  professors: 'professors',
+  plans: 'plans',
+  planItems: 'plan_items',
+  achievements: 'achievements',
+  projects: 'projects',
+  thesisDefenses: 'thesis_defenses',
+  users: 'app_users',
+} as const;
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, '');
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+const buildRestHeaders = (token?: string | null) => ({
+  apikey: supabaseAnonKey || '',
+  'Content-Type': 'application/json',
+  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+});
+
+const fetchSupabaseData = async <T>(
+  path: string,
+  token?: string | null,
+  query?: string
+): Promise<T[]> => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase configuration is missing');
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${path}${query ? `?${query}` : ''}`,
+    {
+      headers: buildRestHeaders(token),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Supabase request failed for ${path}: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return (await response.json()) as T[];
+};
+
+const mutateSupabaseData = async <T>(
+  path: string,
+  method: 'POST' | 'PATCH' | 'DELETE',
+  payload: unknown,
+  token?: string | null,
+  query?: string
+): Promise<T[]> => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase configuration is missing');
+  }
+
+  const response = await fetch(
+    `${supabaseUrl}/rest/v1/${path}${query ? `?${query}` : ''}`,
+    {
+      method,
+      headers: buildRestHeaders(token),
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Supabase mutation failed for ${path}: ${response.status} ${response.statusText}`
+    );
+  }
+
+  const text = await response.text();
+  return text ? (JSON.parse(text) as T[]) : ([] as T[]);
+};
+
+const normalizeString = (value: unknown) =>
+  typeof value === 'string' ? value : '';
+
+const toFaculty = (row: Record<string, unknown>): Faculty => ({
+  id: Number(row.id ?? 0),
+  name: normalizeString(row.name),
+});
+
+const toDepartment = (row: Record<string, unknown>): Department => ({
+  id: Number(row.id ?? 0),
+  name: normalizeString(row.name),
+  facultyId: Number(row.faculty_id ?? row.facultyId ?? 0),
+});
+
+const toProfessor = (row: Record<string, unknown>): Professor => ({
+  id: Number(row.id ?? 0),
+  firstName: normalizeString(row.first_name ?? row.firstName),
+  lastName: normalizeString(row.last_name ?? row.lastName),
+  patronymic: normalizeString(row.patronymic),
+  birthDate: normalizeString(row.birth_date ?? row.birthDate),
+  gender: row.gender === 'ayol' ? 'ayol' : 'erkak',
+  departmentId: Number(row.department_id ?? row.departmentId ?? 0),
+  degree: normalizeString(row.degree),
+  title: normalizeString(row.title),
+  position: normalizeString(row.position),
+  staffUnit: Number(row.staff_unit ?? row.staffUnit ?? 0),
+  employmentType: normalizeString(row.employment_type ?? row.employmentType),
+  phone: normalizeString(row.phone),
+});
+
+const toPlan = (
+  plans: Record<string, unknown>[],
+  planItems: Record<string, unknown>[]
+): Plan[] => {
+  const itemsByPlan = new Map<number, Record<string, unknown>[]>();
+
+  for (const item of planItems) {
+    const planId = Number(item.plan_id ?? item.planId ?? 0);
+    if (!Number.isFinite(planId)) {
+      continue;
+    }
+
+    const existing = itemsByPlan.get(planId) || [];
+    existing.push(item);
+    itemsByPlan.set(planId, existing);
+  }
+
+  return plans.map((plan) => {
+    const planId = Number(plan.id ?? 0);
+    return {
+      id: planId,
+      professorId: Number(plan.professor_id ?? plan.professorId ?? 0),
+      year: Number(plan.year ?? 0),
+      planItems: (itemsByPlan.get(planId) || []).map((item) => ({
+        type: normalizeString(item.type),
+        subType: normalizeString(item.sub_type ?? item.subType),
+        count: Number(item.count ?? 0),
+      })),
+    };
+  });
+};
+
+const toAchievement = (row: Record<string, unknown>): Achievement => ({
+  id: Number(row.id ?? 0),
+  professorId: Number(row.professor_id ?? row.professorId ?? 0),
+  year: Number(row.year ?? 0),
+  quarter: Number(row.quarter ?? 0),
+  type: normalizeString(row.type),
+  subType: normalizeString(row.sub_type ?? row.subType),
+  count: Number(row.count ?? 0),
+});
+
+const toProject = (row: Record<string, unknown>): Project => ({
+  id: Number(row.id ?? 0),
+  name: normalizeString(row.name),
+  type: normalizeString(row.type),
+  direction: normalizeString(row.direction),
+  leaderName: normalizeString(row.leader_name ?? row.leaderName),
+  leaderPosition: normalizeString(row.leader_position ?? row.leaderPosition),
+  departmentId: Number(row.department_id ?? row.departmentId ?? 0),
+  facultyId: Number(row.faculty_id ?? row.facultyId ?? 0),
+  totalFunding: Number(row.total_funding ?? row.totalFunding ?? 0),
+  duration: Number(row.duration ?? 0),
+});
+
+const toThesisDefense = (row: Record<string, unknown>): ThesisDefense => ({
+  id: Number(row.id ?? 0),
+  lastName: normalizeString(row.last_name ?? row.lastName),
+  firstName: normalizeString(row.first_name ?? row.firstName),
+  patronymic: normalizeString(row.patronymic),
+  departmentId: Number(row.department_id ?? row.departmentId ?? 0),
+  facultyId: Number(row.faculty_id ?? row.facultyId ?? 0),
+  specialty: normalizeString(row.specialty),
+  type: normalizeString(row.type),
+  fieldOfScience: normalizeString(row.field_of_science ?? row.fieldOfScience),
+  thesisTopic: normalizeString(row.thesis_topic ?? row.thesisTopic),
+  supervisor: normalizeString(row.supervisor),
+  defenseOrganization: normalizeString(row.defense_organization ?? row.defenseOrganization),
+  councilNumber: normalizeString(row.council_number ?? row.councilNumber),
+  defenseDate: normalizeString(row.defense_date ?? row.defenseDate),
+});
 
 class LocalDataRepository {
   private data: ConstantsData | null = null;
@@ -29,7 +206,7 @@ class LocalDataRepository {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         try {
-          this.data = JSON.parse(stored);
+          this.data = JSON.parse(stored) as ConstantsData;
           console.log('Loaded KPI data from LocalStorage');
           resolve(this.data!);
           return;
@@ -38,14 +215,27 @@ class LocalDataRepository {
         }
       }
 
-      // 2. Otherwise load from data.json
+      // 2. Try to load from Supabase if configuration exists
+      try {
+        const remoteData = await this.loadFromSupabase();
+        if (remoteData) {
+          this.data = remoteData;
+          this.saveToStorage();
+          console.log('Loaded KPI data from Supabase');
+          resolve(this.data!);
+          return;
+        }
+      } catch (error) {
+        console.warn('Supabase data load skipped or failed:', error);
+      }
+
+      // 3. Otherwise load from data.json
       const cacheBuster = timestamp ? `?t=${timestamp}` : `?t=${Date.now()}`;
       try {
         const response = await fetch(`data.json${cacheBuster}`);
         if (response.ok) {
           const jsonData = await response.json();
           if (jsonData && jsonData.CONSTANTS) {
-            // Merge loaded data with DEFAULT_DATA to ensure all keys exist
             this.data = {
               ...DEFAULT_DATA,
               ...jsonData.CONSTANTS,
@@ -62,13 +252,83 @@ class LocalDataRepository {
         );
       }
 
-      // 3. Fallback to DEFAULT_DATA
+      // 4. Fallback to DEFAULT_DATA
       this.data = { ...DEFAULT_DATA };
       this.saveToStorage();
       resolve(this.data!);
     });
 
     return this.initializedPromise;
+  }
+
+  private async loadFromSupabase(): Promise<ConstantsData | null> {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return null;
+    }
+
+    const [facultiesResponse, departmentsResponse, professorsResponse, plansResponse, planItemsResponse, achievementsResponse, projectsResponse, thesisDefensesResponse] =
+      await Promise.all([
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.faculties,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.departments,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.professors,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.plans,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.planItems,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.achievements,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.projects,
+          null,
+          'select=*'
+        ),
+        fetchSupabaseData<Record<string, unknown>>(
+          SUPABASE_REST_PATHS.thesisDefenses,
+          null,
+          'select=*'
+        ),
+      ]);
+
+    const facultyList = facultiesResponse.map(toFaculty);
+    const departmentList = departmentsResponse.map(toDepartment);
+    const professorList = professorsResponse.map(toProfessor);
+    const planList = toPlan(plansResponse, planItemsResponse);
+    const achievementList = achievementsResponse.map(toAchievement);
+    const projectList = projectsResponse.map(toProject);
+    const thesisDefenseList = thesisDefensesResponse.map(toThesisDefense);
+
+    return {
+      ...DEFAULT_DATA,
+      FACULTIES: facultyList,
+      DEPARTMENTS: departmentList,
+      PROFESSORS: professorList,
+      PLANS: planList,
+      ACHIEVEMENTS: achievementList,
+      PROJECTS: projectList,
+      THESIS_DEFENSES: thesisDefenseList,
+      USERS: DEFAULT_DATA.USERS,
+    };
   }
 
   private ensureInitialized(): ConstantsData {
@@ -200,6 +460,35 @@ class LocalDataRepository {
     return d.SCORING_SYSTEM;
   }
 
+  async syncToSupabase(): Promise<void> {
+    if (!supabaseUrl || !supabaseAnonKey || !this.data) {
+      return;
+    }
+
+    const payload = {
+      FACULTIES: this.data.FACULTIES,
+      DEPARTMENTS: this.data.DEPARTMENTS,
+      PROFESSORS: this.data.PROFESSORS,
+      PLANS: this.data.PLANS,
+      ACHIEVEMENTS: this.data.ACHIEVEMENTS,
+      PROJECTS: this.data.PROJECTS,
+      THESIS_DEFENSES: this.data.THESIS_DEFENSES,
+      SCORING_SYSTEM: this.data.SCORING_SYSTEM,
+      USERS: this.data.USERS,
+    };
+
+    await mutateSupabaseData(
+      'app_state',
+      'POST',
+      {
+        id: import.meta.env.VITE_SUPABASE_STATE_ID || 'kpi_constants',
+        data: payload,
+      },
+      null,
+      'on_conflict=id'
+    );
+  }
+
   // --- Reset to initial ---
   async resetData(): Promise<ConstantsData> {
     localStorage.removeItem(STORAGE_KEY);
@@ -212,9 +501,9 @@ class LocalDataRepository {
 export const dataRepository = new LocalDataRepository();
 
 export const DataService = {
-  // Service wrapper for easy backend API switching in the future
   init: (timestamp: string | null = null) => dataRepository.init(timestamp),
   reset: () => dataRepository.resetData(),
+  syncToSupabase: () => dataRepository.syncToSupabase(),
 
   faculties: {
     getAll: () => dataRepository.getFaculties(),
