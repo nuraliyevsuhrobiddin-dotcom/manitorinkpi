@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from '../extracted_src/src/App';
+import App from './App';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
-import '../extracted_src/src/index.css';
+import './index.css';
 
 const rootElement = document.getElementById('root');
 

@@ -5,8 +5,8 @@ import { Header } from './components/Header';
 import { MobileMenu } from './components/MobileMenu';
 import type { SidebarNavItem } from './components/Sidebar';
 import { SupabaseState } from './supabaseState';
-import { AuthService } from '../../src/shared/services/authService';
-import { DataService } from '../../src/shared/services/dataService';
+import { AuthService } from './shared/services/authService';
+import { DataService } from './shared/services/dataService';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BarChart3, Building, Users, GraduationCap, ChevronDown, ChevronRight,
