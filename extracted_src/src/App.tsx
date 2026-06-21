@@ -3841,6 +3841,15 @@ function App() {
       setActiveView('dashboard');
       setLoginError('');
       setLoginModalOpen(false);
+      // Auto-sync localStorage data to Supabase so all browsers see the same data
+      const token = AuthService.getAccessToken();
+      if (token) {
+        DataService.syncRelationalToSupabase(token).then(() => {
+          console.log('Data synced to Supabase after admin login.');
+        }).catch((err) => {
+          console.warn('Supabase sync after login failed:', err);
+        });
+      }
     } else {
       setLoginError('Login yoki parol noto‘g‘ri. Yoki sizda admin huquqi yo\'q.');
     }

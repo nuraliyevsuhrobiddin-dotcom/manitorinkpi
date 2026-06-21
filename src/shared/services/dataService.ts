@@ -71,11 +71,17 @@ const mutateSupabaseData = async <T>(
     throw new Error('Supabase configuration is missing');
   }
 
+  const isUpsert = method === 'POST' && query?.includes('on_conflict');
+  const headers: Record<string, string> = {
+    ...buildRestHeaders(token),
+    ...(isUpsert ? { Prefer: 'resolution=merge-duplicates' } : {}),
+  };
+
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${path}${query ? `?${query}` : ''}`,
     {
       method,
-      headers: buildRestHeaders(token),
+      headers,
       body: JSON.stringify(payload),
     }
   );
@@ -202,23 +208,10 @@ class LocalDataRepository {
     }
 
     this.initializedPromise = new Promise(async (resolve) => {
-      // 1. Try to load from LocalStorage first to preserve CRUD edits
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          this.data = JSON.parse(stored) as ConstantsData;
-          console.log('Loaded KPI data from LocalStorage');
-          resolve(this.data!);
-          return;
-        } catch (e) {
-          console.error('Error parsing stored LocalStorage data', e);
-        }
-      }
-
-      // 2. Try to load from Supabase if configuration exists
+      // 1. Try Supabase FIRST so all browsers share the same data source
       try {
         const remoteData = await this.loadFromSupabase();
-        if (remoteData) {
+        if (remoteData && remoteData.PROFESSORS && remoteData.PROFESSORS.length > 0) {
           this.data = remoteData;
           this.saveToStorage();
           console.log('Loaded KPI data from Supabase');
@@ -227,6 +220,29 @@ class LocalDataRepository {
         }
       } catch (error) {
         console.warn('Supabase data load skipped or failed:', error);
+      }
+
+      // 2. Try to load from LocalStorage (offline cache)
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          const localData = JSON.parse(stored) as ConstantsData;
+          this.data = localData;
+          console.log('Loaded KPI data from LocalStorage');
+
+          // Auto-sync to Supabase if it was empty but localStorage has data
+          if (localData.PROFESSORS && localData.PROFESSORS.length > 0) {
+            console.log('Auto-syncing LocalStorage data to Supabase...');
+            this.syncRelationalToSupabase().catch((err) =>
+              console.warn('Auto-sync to Supabase failed:', err)
+            );
+          }
+
+          resolve(this.data!);
+          return;
+        } catch (e) {
+          console.error('Error parsing stored LocalStorage data', e);
+        }
       }
 
       // 3. Otherwise load from data.json
@@ -460,6 +476,7 @@ class LocalDataRepository {
     return d.SCORING_SYSTEM;
   }
 
+
   async syncToSupabase(): Promise<void> {
     if (!supabaseUrl || !supabaseAnonKey || !this.data) {
       return;
@@ -489,6 +506,170 @@ class LocalDataRepository {
     );
   }
 
+  /**
+   * Sync all local data into the proper relational Supabase tables.
+   * Pass an admin JWT token so RLS allows the write operations.
+   * Called automatically when Supabase tables are empty but localStorage has data.
+   */
+  async syncRelationalToSupabase(token?: string | null): Promise<void> {
+    if (!supabaseUrl || !supabaseAnonKey || !this.data) return;
+
+    const d = this.data;
+
+    // 1. Faculties
+    if (d.FACULTIES.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.faculties,
+        'POST',
+        d.FACULTIES.map((f) => ({ id: f.id, name: f.name })),
+        token,
+        'on_conflict=id'
+      );
+    }
+
+    // 2. Departments
+    if (d.DEPARTMENTS.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.departments,
+        'POST',
+        d.DEPARTMENTS.map((dep) => ({
+          id: dep.id,
+          name: dep.name,
+          faculty_id: dep.facultyId,
+        })),
+        token,
+        'on_conflict=id'
+      );
+    }
+
+    // 3. Professors
+    if (d.PROFESSORS.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.professors,
+        'POST',
+        d.PROFESSORS.map((p) => ({
+          id: p.id,
+          department_id: p.departmentId,
+          first_name: p.firstName,
+          last_name: p.lastName,
+          patronymic: p.patronymic || null,
+          birth_date: p.birthDate || null,
+          gender: p.gender,
+          degree: p.degree || null,
+          title: p.title || null,
+          position: p.position || null,
+          employment_type: p.employmentType || null,
+          phone: p.phone || null,
+          staff_unit: p.staffUnit ?? 0,
+        })),
+        token,
+        'on_conflict=id'
+      );
+    }
+
+    // 4. Plans + plan_items
+    if (d.PLANS.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.plans,
+        'POST',
+        d.PLANS.map((pl) => ({
+          id: pl.id,
+          professor_id: pl.professorId,
+          year: pl.year,
+        })),
+        token,
+        'on_conflict=id'
+      );
+
+      const allPlanItems = d.PLANS.flatMap((pl) =>
+        (pl.planItems || []).map((item) => ({
+          plan_id: pl.id,
+          type: item.type,
+          sub_type: item.subType,
+          count: item.count,
+        }))
+      );
+      if (allPlanItems.length > 0) {
+        await mutateSupabaseData(
+          SUPABASE_REST_PATHS.planItems,
+          'POST',
+          allPlanItems,
+          token,
+          'on_conflict=plan_id,type,sub_type'
+        );
+      }
+    }
+
+    // 5. Achievements
+    if (d.ACHIEVEMENTS.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.achievements,
+        'POST',
+        d.ACHIEVEMENTS.map((a) => ({
+          id: a.id,
+          professor_id: a.professorId,
+          year: a.year,
+          quarter: a.quarter,
+          type: a.type,
+          sub_type: a.subType,
+          count: a.count,
+        })),
+        token,
+        'on_conflict=professor_id,year,quarter,type,sub_type'
+      );
+    }
+
+    // 6. Projects
+    if (d.PROJECTS.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.projects,
+        'POST',
+        d.PROJECTS.map((pr) => ({
+          id: pr.id,
+          department_id: pr.departmentId,
+          faculty_id: pr.facultyId,
+          name: pr.name,
+          type: pr.type,
+          direction: pr.direction,
+          leader_name: pr.leaderName,
+          leader_position: pr.leaderPosition,
+          total_funding: pr.totalFunding,
+          duration: pr.duration,
+        })),
+        token,
+        'on_conflict=id'
+      );
+    }
+
+    // 7. Thesis defenses
+    if (d.THESIS_DEFENSES.length > 0) {
+      await mutateSupabaseData(
+        SUPABASE_REST_PATHS.thesisDefenses,
+        'POST',
+        d.THESIS_DEFENSES.map((td) => ({
+          id: td.id,
+          department_id: td.departmentId,
+          faculty_id: td.facultyId,
+          last_name: td.lastName,
+          first_name: td.firstName,
+          patronymic: td.patronymic || null,
+          specialty: td.specialty || null,
+          type: td.type,
+          field_of_science: td.fieldOfScience || null,
+          thesis_topic: td.thesisTopic,
+          supervisor: td.supervisor || null,
+          defense_organization: td.defenseOrganization || null,
+          council_number: td.councilNumber || null,
+          defense_date: td.defenseDate || null,
+        })),
+        token,
+        'on_conflict=id'
+      );
+    }
+
+    console.log('All data synced to Supabase relational tables.');
+  }
+
   // --- Reset to initial ---
   async resetData(): Promise<ConstantsData> {
     localStorage.removeItem(STORAGE_KEY);
@@ -504,6 +685,7 @@ export const DataService = {
   init: (timestamp: string | null = null) => dataRepository.init(timestamp),
   reset: () => dataRepository.resetData(),
   syncToSupabase: () => dataRepository.syncToSupabase(),
+  syncRelationalToSupabase: (token?: string | null) => dataRepository.syncRelationalToSupabase(token),
 
   faculties: {
     getAll: () => dataRepository.getFaculties(),
