@@ -204,7 +204,7 @@ as $$
   select coalesce(
     lower(coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '')) = any (array['admin', 'superadmin'])
     or lower(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '')) = any (array['admin', 'superadmin'])
-    or lower(coalesce(auth.jwt() ->> 'email', ''))  = any (array['timaganiyev102@gmail.com'])
+    or lower(coalesce(auth.jwt() ->> 'email', ''))  = any (array['suhrobiddinnuraliyev04@gmail.com'])
     or exists (
       select 1 from public.app_users
       where id   = (auth.jwt() ->> 'sub')::uuid

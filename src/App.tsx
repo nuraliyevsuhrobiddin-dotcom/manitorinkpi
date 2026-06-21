@@ -3472,7 +3472,8 @@ const LoginModal: React.FC<{
 // Asosiy ilova
 function App() {
   const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
-  
+
+  // Initialize from localStorage — validateSession() will verify server-side on mount
   const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -3833,6 +3834,23 @@ function App() {
 
     return { professorsWithDetails, departmentRatings, facultyRatings, achievements: achievementsForYear, getScore, selectedYear, universityScientificPotential, allProfessors: professors, totalDegreeHolders, totalDSc, totalPhD, projectTypeCounts };
   }, [selectedYear, faculties, departments, professors, achievements, plans, projects, getScore, scoringSystem]);
+
+  // Validate session on mount (catches expired tokens after Vercel redeploy)
+  useEffect(() => {
+    let cancelled = false;
+    AuthService.validateSession().then((validUser) => {
+      if (cancelled) return;
+      if (!validUser) {
+        // Session is invalid/expired — revert to guest
+        setUser(guestUser);
+      }
+      // If validUser exists, state is already correct from useState initializer
+    }).catch(() => {
+      if (!cancelled) setUser(guestUser);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async (username: string, password: string) => {
     const authenticatedUser = await AuthService.login({ username, password });
