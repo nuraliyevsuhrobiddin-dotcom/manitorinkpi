@@ -3785,11 +3785,11 @@ function App() {
           // disappears on page refresh (since relational tables are primary source).
           try {
             if (token) {
-              await DataService.syncRelationalToSupabase(token);
+              await DataService.syncRelationalToSupabase(token, stateToSave as any);
               console.log('[App] Relational tables synced to Supabase ✓');
             } else {
               // Fallback: sync app_state blob only
-              await DataService.syncToSupabase();
+              await DataService.syncToSupabase(stateToSave as any);
             }
           } catch (syncError) {
             console.warn('[App] Sync warning (data saved to localStorage as backup):', syncError);

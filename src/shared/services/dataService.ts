@@ -534,10 +534,13 @@ class LocalDataRepository {
   }
 
 
-  async syncToSupabase(): Promise<void> {
-    if (!supabaseUrl || !supabaseAnonKey || !this.data) {
-      return;
+  async syncToSupabase(newData?: ConstantsData): Promise<void> {
+    if (!supabaseUrl || !supabaseAnonKey) return;
+    if (newData) {
+      this.data = newData;
+      this.saveToStorage();
     }
+    if (!this.data) return;
 
     const payload = {
       FACULTIES: this.data.FACULTIES,
@@ -568,8 +571,13 @@ class LocalDataRepository {
    * Pass an admin JWT token so RLS allows the write operations.
    * Called automatically when Supabase tables are empty but localStorage has data.
    */
-  async syncRelationalToSupabase(token?: string | null): Promise<void> {
-    if (!supabaseUrl || !supabaseAnonKey || !this.data) return;
+  async syncRelationalToSupabase(token?: string | null, newData?: ConstantsData): Promise<void> {
+    if (!supabaseUrl || !supabaseAnonKey) return;
+    if (newData) {
+      this.data = newData;
+      this.saveToStorage();
+    }
+    if (!this.data) return;
 
     const d = this.data;
 
@@ -749,8 +757,8 @@ export const DataService = {
   init: (timestamp: string | null = null) => dataRepository.init(timestamp),
   reset: () => dataRepository.resetData(),
   invalidateCache: () => dataRepository.invalidateCache(),
-  syncToSupabase: () => dataRepository.syncToSupabase(),
-  syncRelationalToSupabase: (token?: string | null) => dataRepository.syncRelationalToSupabase(token),
+  syncToSupabase: (data?: ConstantsData) => dataRepository.syncToSupabase(data),
+  syncRelationalToSupabase: (token?: string | null, data?: ConstantsData) => dataRepository.syncRelationalToSupabase(token, data),
 
   faculties: {
     getAll: () => dataRepository.getFaculties(),
