@@ -24,7 +24,7 @@ type Department = typeof CONSTANTS.DEPARTMENTS[0];
 type Faculty = typeof CONSTANTS.FACULTIES[0];
 type Division = { id: number, name: string };
 type PlanItem = { type: string, subType: string, count: number };
-type Plan = { professorId: number, year: number, planItems: PlanItem[] };
+type Plan = { id?: number, professorId: number, year: number, planItems: PlanItem[] };
 type Project = typeof CONSTANTS.PROJECTS[0];
 type ScoringSystem = typeof CONSTANTS.SCORING_SYSTEM;
 type ScoringCriterion = { score: number; description: string };
@@ -775,7 +775,7 @@ const ProfessorEvaluationModal: React.FC<{
         updated[idx] = { ...updated[idx], count };
         return updated;
       } else {
-        return [...prev, { id: Date.now() + Math.random(), professorId: professor.id, year, quarter, type, subType, count }];
+        return [...prev, { id: Math.floor(Date.now() + Math.random() * 1000), professorId: professor.id, year, quarter, type, subType, count }];
       }
     });
   }
@@ -892,6 +892,7 @@ const ProfessorPlanModal: React.FC<{
   function handleSave() {
     const filteredItems = localPlanItems.filter(p => p.count > 0);
     const updatedPlan: Plan = {
+      id: profPlan?.id || Math.floor(Date.now() + Math.random() * 1000),
       professorId: professor.id,
       year: year,
       planItems: filteredItems

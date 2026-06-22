@@ -643,7 +643,7 @@ class LocalDataRepository {
           year: pl.year,
         })),
         token,
-        'on_conflict=id'
+        'on_conflict=professor_id,year'
       );
 
       const allPlanItems = d.PLANS.flatMap((pl) =>
