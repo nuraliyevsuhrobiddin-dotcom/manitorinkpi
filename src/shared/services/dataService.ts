@@ -47,14 +47,30 @@ const fetchSupabaseData = async <T>(
   const response = await fetch(
     `${supabaseUrl}/rest/v1/${path}${query ? `?${query}` : ''}`,
     {
-      headers: buildRestHeaders(token),
+      headers: {
+        ...buildRestHeaders(token),
+        'Cache-Control': 'no-cache, no-store',
+        'Pragma': 'no-cache',
+      },
+      cache: 'no-store',
     }
   );
 
   if (!response.ok) {
-    throw new Error(
-      `Supabase request failed for ${path}: ${response.status} ${response.statusText}`
-    );
+    let detail = '';
+    try { detail = JSON.stringify(await response.clone().json()); } catch { detail = await response.text().catch(() => ''); }
+    const msg = `[DataService] ${path} → HTTP ${response.status} ${response.statusText}: ${detail}`;
+    if (response.status === 401 || response.status === 403) {
+      console.error(`⚠ [DataService] RLS/Auth error on '${path}' (${response.status}). Check:
+  1. Supabase RLS policies allow anon SELECT on '${path}'
+  2. Or use an auth token: VITE_SUPABASE_ANON_KEY has read access
+  3. Run supabase_migration_final.sql to fix policies\n`, detail);
+    } else if (response.status === 402) {
+      console.error(`⚠ [DataService] Supabase quota/billing limit reached for '${path}' (${response.status}).`);
+    } else {
+      console.error(msg);
+    }
+    throw new Error(msg);
   }
 
   return (await response.json()) as T[];
@@ -201,47 +217,89 @@ const toThesisDefense = (row: Record<string, unknown>): ThesisDefense => ({
 class LocalDataRepository {
   private data: ConstantsData | null = null;
   private initializedPromise: Promise<ConstantsData> | null = null;
+  /** Set to true so the next init() call always re-fetches from Supabase */
+  private forceRefresh = false;
 
   init(timestamp: string | null = null): Promise<ConstantsData> {
-    if (this.initializedPromise) {
+    if (this.initializedPromise && !this.forceRefresh) {
       return this.initializedPromise;
     }
+    // Clear cache so a fresh Supabase fetch is triggered
+    this.forceRefresh = false;
+    this.initializedPromise = null;
 
     this.initializedPromise = new Promise(async (resolve) => {
       // 1. Try Supabase FIRST so all browsers share the same data source
       try {
         const remoteData = await this.loadFromSupabase();
-        if (remoteData && remoteData.PROFESSORS && remoteData.PROFESSORS.length > 0) {
+        // Accept Supabase data if ANY of the main tables have rows
+        const hasAnyData = remoteData && (
+          (remoteData.FACULTIES?.length ?? 0) > 0 ||
+          (remoteData.DEPARTMENTS?.length ?? 0) > 0 ||
+          (remoteData.PROFESSORS?.length ?? 0) > 0 ||
+          (remoteData.ACHIEVEMENTS?.length ?? 0) > 0
+        );
+        if (hasAnyData) {
           this.data = remoteData;
           this.saveToStorage();
-          console.log('Loaded KPI data from Supabase');
+          console.log(
+            `[DataService] Loaded from Supabase — ` +
+            `faculties:${remoteData!.FACULTIES?.length ?? 0} ` +
+            `departments:${remoteData!.DEPARTMENTS?.length ?? 0} ` +
+            `professors:${remoteData!.PROFESSORS?.length ?? 0} ` +
+            `achievements:${remoteData!.ACHIEVEMENTS?.length ?? 0}`
+          );
           resolve(this.data!);
           return;
+        } else {
+          console.warn('[DataService] Supabase returned 0 rows for ALL main tables. Trying localStorage...');
         }
       } catch (error) {
-        console.warn('Supabase data load skipped or failed:', error);
+        console.warn('[DataService] Supabase data load failed:', error);
       }
 
-      // 2. Try to load from LocalStorage (offline cache)
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          const localData = JSON.parse(stored) as ConstantsData;
-          this.data = localData;
-          console.log('Loaded KPI data from LocalStorage');
-
-          // Auto-sync to Supabase if it was empty but localStorage has data
-          if (localData.PROFESSORS && localData.PROFESSORS.length > 0) {
-            console.log('Auto-syncing LocalStorage data to Supabase...');
-            this.syncRelationalToSupabase().catch((err) =>
-              console.warn('Auto-sync to Supabase failed:', err)
-            );
+      // 2. Try to load from LocalStorage (offline cache) — check all known keys
+      const storageKeys = ['kpi_system_data', 'kpi_app_state_backup'];
+      for (const key of storageKeys) {
+        const stored = localStorage.getItem(key);
+        if (stored) {
+          try {
+            const localData = JSON.parse(stored) as any;
+            // kpi_app_state_backup wraps data in PROFESSORS/FACULTIES keys directly
+            const normalized: ConstantsData = {
+              ...DEFAULT_DATA,
+              FACULTIES:    localData.FACULTIES    || localData.faculties    || DEFAULT_DATA.FACULTIES,
+              DEPARTMENTS:  localData.DEPARTMENTS  || localData.departments  || DEFAULT_DATA.DEPARTMENTS,
+              PROFESSORS:   localData.PROFESSORS   || localData.professors   || DEFAULT_DATA.PROFESSORS,
+              ACHIEVEMENTS: localData.ACHIEVEMENTS || localData.achievements || DEFAULT_DATA.ACHIEVEMENTS,
+              PLANS:        localData.PLANS        || localData.plans        || DEFAULT_DATA.PLANS,
+              PROJECTS:     localData.PROJECTS     || localData.projects     || DEFAULT_DATA.PROJECTS,
+              THESIS_DEFENSES: localData.THESIS_DEFENSES || localData.thesisDefenses || DEFAULT_DATA.THESIS_DEFENSES,
+              SCORING_SYSTEM: localData.SCORING_SYSTEM || localData.scoringSystem || DEFAULT_DATA.SCORING_SYSTEM,
+              USERS:        localData.USERS        || localData.users        || DEFAULT_DATA.USERS,
+              DIVISIONS:    localData.DIVISIONS    || localData.divisions    || DEFAULT_DATA.DIVISIONS,
+              POSITIONS:    localData.POSITIONS    || localData.positions    || DEFAULT_DATA.POSITIONS,
+            };
+            if ((normalized.PROFESSORS?.length ?? 0) > 0 || (normalized.FACULTIES?.length ?? 0) > 0) {
+              this.data = normalized;
+              console.log(
+                `[DataService] Loaded from localStorage[${key}] — ` +
+                `professors:${normalized.PROFESSORS?.length ?? 0} ` +
+                `faculties:${normalized.FACULTIES?.length ?? 0}`
+              );
+              // Auto-sync to Supabase if it was empty but localStorage has data
+              if ((normalized.PROFESSORS?.length ?? 0) > 0) {
+                console.log('[DataService] Auto-syncing localStorage data to Supabase...');
+                this.syncRelationalToSupabase().catch((err) =>
+                  console.warn('[DataService] Auto-sync to Supabase failed:', err)
+                );
+              }
+              resolve(this.data!);
+              return;
+            }
+          } catch (e) {
+            console.error(`[DataService] Error parsing localStorage[${key}]`, e);
           }
-
-          resolve(this.data!);
-          return;
-        } catch (e) {
-          console.error('Error parsing stored LocalStorage data', e);
         }
       }
 
@@ -282,68 +340,67 @@ class LocalDataRepository {
       return null;
     }
 
-    const [facultiesResponse, departmentsResponse, professorsResponse, plansResponse, planItemsResponse, achievementsResponse, projectsResponse, thesisDefensesResponse] =
-      await Promise.all([
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.faculties,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.departments,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.professors,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.plans,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.planItems,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.achievements,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.projects,
-          null,
-          'select=*'
-        ),
-        fetchSupabaseData<Record<string, unknown>>(
-          SUPABASE_REST_PATHS.thesisDefenses,
-          null,
-          'select=*'
-        ),
-      ]);
+    // Fetch all tables in parallel — each failure is caught individually
+    const settled = await Promise.allSettled([
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.faculties,      null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.departments,    null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.professors,     null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.plans,          null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.planItems,      null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.achievements,   null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.projects,       null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.thesisDefenses, null, 'select=*'),
+    ]);
 
-    const facultyList = facultiesResponse.map(toFaculty);
-    const departmentList = departmentsResponse.map(toDepartment);
-    const professorList = professorsResponse.map(toProfessor);
-    const planList = toPlan(plansResponse, planItemsResponse);
-    const achievementList = achievementsResponse.map(toAchievement);
-    const projectList = projectsResponse.map(toProject);
-    const thesisDefenseList = thesisDefensesResponse.map(toThesisDefense);
+    const [fRes, dRes, pRes, plRes, piRes, aRes, prRes, tdRes] = settled;
+
+    // Helper: unwrap or warn and return cached/default
+    const unwrap = <T>(result: PromiseSettledResult<T[]>, name: string, fallback: T[]): T[] => {
+      if (result.status === 'fulfilled') {
+        if (result.value.length === 0) {
+          console.warn(`[DataService] '${name}' returned 0 rows from Supabase. This may indicate an RLS policy issue or empty table.`);
+        }
+        return result.value;
+      }
+      console.warn(`[DataService] '${name}' fetch failed — keeping previous data:`, result.reason?.message || result.reason);
+      return fallback;
+    };
+
+    // Get existing data as fallback so we never wipe rows on a bad response
+    const existing = this.data;
+
+    const facultiesRaw    = unwrap(fRes,  'faculties',       (existing?.FACULTIES        as any[]) || []);
+    const departmentsRaw  = unwrap(dRes,  'departments',     (existing?.DEPARTMENTS      as any[]) || []);
+    const professorsRaw   = unwrap(pRes,  'professors',      (existing?.PROFESSORS       as any[]) || []);
+    const plansRaw        = unwrap(plRes, 'plans',           []);
+    const planItemsRaw    = unwrap(piRes, 'plan_items',      []);
+    const achievementsRaw = unwrap(aRes,  'achievements',    (existing?.ACHIEVEMENTS     as any[]) || []);
+    const projectsRaw     = unwrap(prRes, 'projects',        (existing?.PROJECTS         as any[]) || []);
+    const thesisRaw       = unwrap(tdRes, 'thesis_defenses', (existing?.THESIS_DEFENSES  as any[]) || []);
+
+    const facultyList    = facultiesRaw.map(toFaculty);
+    const departmentList = departmentsRaw.map(toDepartment);
+    const professorList  = professorsRaw.map(toProfessor);
+    const planList       = toPlan(plansRaw, planItemsRaw);
+    const achievementList= achievementsRaw.map(toAchievement);
+    const projectList    = projectsRaw.map(toProject);
+    const thesisDefenseList = thesisRaw.map(toThesisDefense);
+
+    // ⚠ CRITICAL: never replace with empty arrays — keep existing data as fallback
+    const guardArr = <T>(fresh: T[], prev: T[]): T[] =>
+      fresh.length > 0 ? fresh : prev;
 
     return {
       ...DEFAULT_DATA,
-      FACULTIES: facultyList,
-      DEPARTMENTS: departmentList,
-      PROFESSORS: professorList,
-      PLANS: planList,
-      ACHIEVEMENTS: achievementList,
-      PROJECTS: projectList,
-      THESIS_DEFENSES: thesisDefenseList,
-      USERS: DEFAULT_DATA.USERS,
+      ...(existing || {}),
+      FACULTIES:       guardArr(facultyList,      (existing?.FACULTIES       as any[]) || []),
+      DEPARTMENTS:     guardArr(departmentList,   (existing?.DEPARTMENTS     as any[]) || []),
+      PROFESSORS:      guardArr(professorList,    (existing?.PROFESSORS      as any[]) || []),
+      PLANS:           planList.length > 0 ? planList : ((existing?.PLANS as any[]) || []),
+      ACHIEVEMENTS:    guardArr(achievementList,  (existing?.ACHIEVEMENTS    as any[]) || []),
+      PROJECTS:        guardArr(projectList,      (existing?.PROJECTS        as any[]) || []),
+      THESIS_DEFENSES: guardArr(thesisDefenseList,(existing?.THESIS_DEFENSES as any[]) || []),
+      USERS: existing?.USERS || DEFAULT_DATA.USERS,
     };
   }
 
@@ -675,7 +732,14 @@ class LocalDataRepository {
     localStorage.removeItem(STORAGE_KEY);
     this.data = null;
     this.initializedPromise = null;
+    this.forceRefresh = true;  // ensure next init() re-fetches from Supabase
     return this.init();
+  }
+
+  /** Force a fresh re-fetch from Supabase on next init() call */
+  invalidateCache(): void {
+    this.forceRefresh = true;
+    this.initializedPromise = null;
   }
 }
 
@@ -684,6 +748,7 @@ export const dataRepository = new LocalDataRepository();
 export const DataService = {
   init: (timestamp: string | null = null) => dataRepository.init(timestamp),
   reset: () => dataRepository.resetData(),
+  invalidateCache: () => dataRepository.invalidateCache(),
   syncToSupabase: () => dataRepository.syncToSupabase(),
   syncRelationalToSupabase: (token?: string | null) => dataRepository.syncRelationalToSupabase(token),
 

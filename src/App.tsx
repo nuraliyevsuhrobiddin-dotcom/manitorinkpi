@@ -3556,123 +3556,159 @@ function App() {
     window.localStorage.setItem(REPORT_YEAR_STORAGE_KEY, String(selectedYear));
   }, [selectedYear]);
 
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  // ── Helper: only apply if non-empty array ──────────────────────────────────
+  // Note: <T,> trailing comma is required in .tsx to distinguish from JSX
+  const applyIfPresent = <T,>(arr: T[] | undefined | null, setter: (v: T[]) => void): void => {
+    if (Array.isArray(arr) && arr.length > 0) setter(arr);
+  };
+
   useEffect(() => {
     let cancelled = false;
 
-    const loadBaseData = async () => {
+    const loadAllData = async () => {
+      setIsDataLoading(true);
+
+      // ── STEP 1: Load relational tables from Supabase (primary source) ───────
+      // These tables are the canonical source of truth. Never overwrite with [].
+      // Track PER TABLE so we know exactly which ones had data.
+      let relationalLoaded: Record<string, boolean> = {
+        faculties: false, departments: false, professors: false,
+        achievements: false, plans: false, projects: false, thesisDefenses: false,
+      };
       try {
+        DataService.invalidateCache(); // force fresh fetch on every page load
         const data = await DataService.init();
         if (cancelled) return;
 
-        setUsers(stripUserSecrets((data.USERS as User[]) || CONSTANTS.USERS) as User[]);
-        setFaculties((data.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
-        setDepartments((data.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
-        setDivisions((data.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
-        setPositions((data.POSITIONS as string[]) || CONSTANTS.POSITIONS);
-        setProfessors((data.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
-        setAchievements((data.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
-        setPlans((data.PLANS as Plan[]) || CONSTANTS.PLANS);
-        setProjects((data.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
-        setScoringSystem((data.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-        setThesisDefenses((data.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
-      } catch (error) {
-        console.warn('DataService init failed, keeping default constants:', error);
+        const profCount = (data.PROFESSORS as any[])?.length ?? 0;
+        const facCount  = (data.FACULTIES  as any[])?.length ?? 0;
+        const deptCount = (data.DEPARTMENTS as any[])?.length ?? 0;
+        const achCount  = (data.ACHIEVEMENTS as any[])?.length ?? 0;
+        console.log(`[App] DataService loaded — professors:${profCount} faculties:${facCount} departments:${deptCount} achievements:${achCount}`);
+
+        // Guard: only update state when data is actually present — never wipe with []
+        applyIfPresent(data.FACULTIES    as Faculty[]     | undefined, setFaculties);
+        applyIfPresent(data.DEPARTMENTS  as Department[]  | undefined, setDepartments);
+        applyIfPresent(data.PROFESSORS   as Professor[]   | undefined, setProfessors);
+        applyIfPresent(data.ACHIEVEMENTS as Achievement[] | undefined, setAchievements);
+        applyIfPresent(data.PLANS        as Plan[]        | undefined, setPlans);
+        applyIfPresent(data.PROJECTS     as Project[]     | undefined, setProjects);
+        applyIfPresent(data.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
+        if (data.DIVISIONS)     setDivisions((data.DIVISIONS    as Division[]) || CONSTANTS.DIVISIONS);
+        if (data.POSITIONS)     setPositions((data.POSITIONS    as string[])   || CONSTANTS.POSITIONS);
+        if (data.SCORING_SYSTEM) setScoringSystem((data.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
+        if (data.USERS)         setUsers(stripUserSecrets((data.USERS as User[]) || CONSTANTS.USERS) as User[]);
+
+        // ⚠ Track PER TABLE which ones have data — NOT a single global flag
+        // This prevents the case where faculties loaded but professors didn't,
+        // causing app_state professors to be wrongly skipped.
+        relationalLoaded = {
+          faculties:     facCount  > 0,
+          departments:   deptCount > 0,
+          professors:    profCount > 0,
+          achievements:  achCount  > 0,
+          plans:         ((data.PLANS as any[])?.length ?? 0) > 0,
+          projects:      ((data.PROJECTS as any[])?.length ?? 0) > 0,
+          thesisDefenses:((data.THESIS_DEFENSES as any[])?.length ?? 0) > 0,
+        };
+      } catch (error: any) {
+        if (cancelled) return;
+        // Log RLS/permission errors clearly
+        if (error?.message?.includes('403') || error?.message?.includes('401')) {
+          console.error('[App] ⚠ RLS/Permission error from Supabase. Check your RLS policies and is_app_admin() function.\n', error);
+        } else {
+          console.warn('[App] DataService.init() failed, keeping CONSTANTS defaults:', error);
+        }
       }
-    };
 
-    loadBaseData();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadRemoteState = async () => {
+      // ── STEP 2: Load app_state blob (fallback / supplementary) ─────────────
+      // Only use app_state blob to SUPPLEMENT relational data, not overwrite it.
+      // If relational tables already loaded data, skip overwriting arrays.
       try {
-        const remoteState = await SupabaseState.load();
+        const remoteState   = await SupabaseState.load();
         const fallbackState = SupabaseState.loadLocal();
-        
-        // Use chooseNewest() to compare __savedAt timestamps.
-        // If the admin just added data (saved to localStorage immediately)
-        // but the page refreshed before Supabase synced, the local copy
-        // will be newer and must win — otherwise changes are silently lost.
+        if (cancelled) return;
+
         const { state: appState, source } = SupabaseState.chooseNewest(remoteState, fallbackState);
 
-        if (cancelled || !appState) return;
-        skipInitialRemoteSave.current = source !== 'local';
-        forceNextRemoteSave.current = source === 'local';
+        if (appState) {
+          skipInitialRemoteSave.current = source !== 'local';
+          forceNextRemoteSave.current   = source === 'local';
 
-        setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
-        setFaculties((appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
-        setDepartments((appState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
-        setDivisions((appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
-        setPositions((appState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
-        setProfessors((appState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
-        setAchievements((appState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
-        setPlans((appState.PLANS as Plan[]) || CONSTANTS.PLANS);
-        setProjects((appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
-        setScoringSystem((appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-        setThesisDefenses((appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+          // Apply app_state arrays ONLY for tables that Supabase returned 0 rows
+          // This correctly handles: faculties loaded but professors didn't
+          if (!relationalLoaded.faculties)     applyIfPresent(appState.FACULTIES      as Faculty[]      | undefined, setFaculties);
+          if (!relationalLoaded.departments)   applyIfPresent(appState.DEPARTMENTS    as Department[]   | undefined, setDepartments);
+          if (!relationalLoaded.professors)    applyIfPresent(appState.PROFESSORS     as Professor[]    | undefined, setProfessors);
+          if (!relationalLoaded.achievements)  applyIfPresent(appState.ACHIEVEMENTS   as Achievement[]  | undefined, setAchievements);
+          if (!relationalLoaded.plans)         applyIfPresent(appState.PLANS          as Plan[]         | undefined, setPlans);
+          if (!relationalLoaded.projects)      applyIfPresent(appState.PROJECTS       as Project[]      | undefined, setProjects);
+          if (!relationalLoaded.thesisDefenses)applyIfPresent(appState.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
 
-        lastSavedStateRef.current = serializeState(
-          (appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES,
-          (appState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS,
-          (appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS,
-          (appState.POSITIONS as string[]) || CONSTANTS.POSITIONS,
-          (appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS,
-          (appState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS,
-          (appState.PLANS as Plan[]) || CONSTANTS.PLANS,
-          (appState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS,
-          (appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM,
-          (appState.USERS as User[]) || CONSTANTS.USERS,
-          (appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
-        );
-      } catch (error) {
-        console.error('Supabase state load error:', error);
-        const fallbackState = SupabaseState.loadLocal();
-        if (cancelled || !fallbackState) return;
-        skipInitialRemoteSave.current = false;
-        forceNextRemoteSave.current = true;
+          const missingTables = Object.entries(relationalLoaded)
+            .filter(([, v]) => !v).map(([k]) => k);
+          if (missingTables.length > 0) {
+            console.info(`[App] app_state applied for missing tables: [${missingTables.join(', ')}] (source: ${source})`);
+          } else {
+            console.info(`[App] All tables loaded from Supabase relational — app_state used only for config`);
+          }
 
-        setUsers(stripUserSecrets((fallbackState.USERS as User[]) || CONSTANTS.USERS) as User[]);
-        setFaculties((fallbackState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES);
-        setDepartments((fallbackState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS);
-        setDivisions((fallbackState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
-        setPositions((fallbackState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
-        setProfessors((fallbackState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS);
-        setAchievements((fallbackState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS);
-        setPlans((fallbackState.PLANS as Plan[]) || CONSTANTS.PLANS);
-        setProjects((fallbackState.PROJECTS as Project[]) || CONSTANTS.PROJECTS);
-        setScoringSystem((fallbackState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-        setThesisDefenses((fallbackState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES);
+          // Always apply config fields (not arrays) from app_state
+          if (appState.DIVISIONS)      setDivisions((appState.DIVISIONS    as Division[]) || CONSTANTS.DIVISIONS);
+          if (appState.POSITIONS)      setPositions((appState.POSITIONS    as string[])   || CONSTANTS.POSITIONS);
+          if (appState.SCORING_SYSTEM) setScoringSystem((appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
+          if (appState.USERS)          setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
 
-        lastSavedStateRef.current = serializeState(
-          (fallbackState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES,
-          (fallbackState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS,
-          (fallbackState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS,
-          (fallbackState.POSITIONS as string[]) || CONSTANTS.POSITIONS,
-          (fallbackState.PROJECTS as Project[]) || CONSTANTS.PROJECTS,
-          (fallbackState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS,
-          (fallbackState.PLANS as Plan[]) || CONSTANTS.PLANS,
-          (fallbackState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS,
-          (fallbackState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM,
-          (fallbackState.USERS as User[]) || CONSTANTS.USERS,
-          (fallbackState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
-        );
+          lastSavedStateRef.current = serializeState(
+            (appState.FACULTIES      as Faculty[])      || CONSTANTS.FACULTIES,
+            (appState.DEPARTMENTS    as Department[])   || CONSTANTS.DEPARTMENTS,
+            (appState.DIVISIONS      as Division[])     || CONSTANTS.DIVISIONS,
+            (appState.POSITIONS      as string[])       || CONSTANTS.POSITIONS,
+            (appState.PROJECTS       as Project[])      || CONSTANTS.PROJECTS,
+            (appState.PROFESSORS     as Professor[])    || CONSTANTS.PROFESSORS,
+            (appState.PLANS          as Plan[])         || CONSTANTS.PLANS,
+            (appState.ACHIEVEMENTS   as Achievement[])  || CONSTANTS.ACHIEVEMENTS,
+            (appState.SCORING_SYSTEM as ScoringSystem)  || CONSTANTS.SCORING_SYSTEM,
+            (appState.USERS          as User[])         || CONSTANTS.USERS,
+            (appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
+          );
+        }
+      } catch (error: any) {
+        if (cancelled) return;
+        console.error('[App] SupabaseState.load() failed:', error);
+
+        // Fallback to localStorage if Supabase app_state call fails
+        const anyRelationalLoaded = Object.values(relationalLoaded).some(Boolean);
+        if (!anyRelationalLoaded) {
+          const localFallback = SupabaseState.loadLocal();
+          if (localFallback && !cancelled) {
+            skipInitialRemoteSave.current = false;
+            forceNextRemoteSave.current   = true;
+            console.info('[App] Using localStorage as final fallback');
+            applyIfPresent(localFallback.FACULTIES      as Faculty[]      | undefined, setFaculties);
+            applyIfPresent(localFallback.DEPARTMENTS    as Department[]   | undefined, setDepartments);
+            applyIfPresent(localFallback.PROFESSORS     as Professor[]    | undefined, setProfessors);
+            applyIfPresent(localFallback.ACHIEVEMENTS   as Achievement[]  | undefined, setAchievements);
+            applyIfPresent(localFallback.PLANS          as Plan[]         | undefined, setPlans);
+            applyIfPresent(localFallback.PROJECTS       as Project[]      | undefined, setProjects);
+            applyIfPresent(localFallback.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
+          }
+        }
       } finally {
-        if (!cancelled) setRemoteStateReady(true);
+        if (!cancelled) {
+          setRemoteStateReady(true);
+          setIsDataLoading(false);
+        }
       }
     };
 
-    loadRemoteState();
-
-    return () => {
-      cancelled = true;
-    };
+    loadAllData();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   useEffect(() => {
     if (!remoteStateReady) return;
@@ -3741,12 +3777,22 @@ function App() {
     }
     saveDebounceRef.current = window.setTimeout(() => {
       saveDebounceRef.current = null;
-      SupabaseState.save(stateToSave, AuthService.getAccessToken())
+      const token = AuthService.getAccessToken();
+      SupabaseState.save(stateToSave, token)
         .then(async () => {
+          // ✅ FIX: Also sync to RELATIONAL TABLES (professors, faculties, etc.)
+          // Without this, Supabase professors table stays empty and data
+          // disappears on page refresh (since relational tables are primary source).
           try {
-            await DataService.syncToSupabase();
+            if (token) {
+              await DataService.syncRelationalToSupabase(token);
+              console.log('[App] Relational tables synced to Supabase ✓');
+            } else {
+              // Fallback: sync app_state blob only
+              await DataService.syncToSupabase();
+            }
           } catch (syncError) {
-            console.warn('DataService sync warning:', syncError);
+            console.warn('[App] Sync warning (data saved to localStorage as backup):', syncError);
           }
           setSaveStatus('saved');
         })
@@ -3889,6 +3935,19 @@ function App() {
   if (!user) {
     // This should not happen with default guest user, but as a fallback
     return <div>Loading...</div>;
+  }
+
+  // ── Skeleton loading screen ─────────────────────────────────────────────────
+  if (isDataLoading) {
+    return (
+      <div className="flex h-screen bg-gray-100 items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-gray-600 font-medium">Ma'lumotlar yuklanmoqda...</p>
+          <p className="text-gray-400 text-sm mt-1">Supabase'dan ma'lumotlar olinmoqda</p>
+        </div>
+      </div>
+    );
   }
 
   const renderView = () => {
