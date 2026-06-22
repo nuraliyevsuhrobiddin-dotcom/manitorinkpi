@@ -98,7 +98,9 @@ const mutateSupabaseData = async <T>(
     {
       method,
       headers,
-      body: JSON.stringify(payload),
+      ...(method !== 'DELETE' && payload !== undefined && payload !== null
+        ? { body: JSON.stringify(payload) }
+        : {}),
     }
   );
 
@@ -581,6 +583,120 @@ class LocalDataRepository {
 
     const d = this.data;
 
+    // Helper to delete orphaned records by ID
+    const cleanOrphans = async (
+      path: string,
+      activeIdsArray: unknown[],
+      nameForLog: string
+    ) => {
+      try {
+        const activeIds = new Set(
+          activeIdsArray
+            .map((item) => (item as any)?.id)
+            .filter((id) => id !== undefined && id !== null)
+        );
+        // Fetch all existing IDs in Supabase for this table
+        const existing = await fetchSupabaseData<{ id: number }>(
+          path,
+          token,
+          'select=id'
+        );
+        const toDelete = existing
+          .filter((row) => !activeIds.has(Number(row.id)))
+          .map((row) => row.id);
+        if (toDelete.length > 0) {
+          const chunkSize = 100;
+          for (let i = 0; i < toDelete.length; i += chunkSize) {
+            const chunk = toDelete.slice(i, i + chunkSize);
+            await mutateSupabaseData(
+              path,
+              'DELETE',
+              null,
+              token,
+              `id=in.(${chunk.join(',')})`
+            );
+          }
+          console.log(
+            `[DataService] Deleted ${toDelete.length} orphaned ${nameForLog} from Supabase.`
+          );
+        }
+      } catch (err: any) {
+        console.warn(
+          `[DataService] Failed to clean up orphaned ${nameForLog}:`,
+          err.message || err
+        );
+      }
+    };
+
+    // Clean up orphans FIRST (in parent-to-child order to let cascade delete work cleanly)
+    // 1. Faculties
+    await cleanOrphans(SUPABASE_REST_PATHS.faculties, d.FACULTIES, 'faculties');
+    // 2. Departments
+    await cleanOrphans(SUPABASE_REST_PATHS.departments, d.DEPARTMENTS, 'departments');
+    // 3. Professors
+    await cleanOrphans(SUPABASE_REST_PATHS.professors, d.PROFESSORS, 'professors');
+    // 4. Plans
+    await cleanOrphans(SUPABASE_REST_PATHS.plans, d.PLANS, 'plans');
+    // 5. Achievements
+    await cleanOrphans(SUPABASE_REST_PATHS.achievements, d.ACHIEVEMENTS, 'achievements');
+    // 6. Projects
+    await cleanOrphans(SUPABASE_REST_PATHS.projects, d.PROJECTS, 'projects');
+    // 7. Thesis Defenses
+    await cleanOrphans(
+      SUPABASE_REST_PATHS.thesisDefenses,
+      d.THESIS_DEFENSES,
+      'thesis_defenses'
+    );
+
+    // Clean up plan_items for active plans
+    try {
+      const activePlanIds = new Set(d.PLANS.map((pl) => pl.id).filter(Boolean));
+      if (activePlanIds.size > 0) {
+        const existingItems = await fetchSupabaseData<{
+          plan_id: number;
+          type: string;
+          sub_type: string;
+        }>(SUPABASE_REST_PATHS.planItems, token, 'select=plan_id,type,sub_type');
+
+        const activeItemKeys = new Set(
+          d.PLANS.flatMap((pl) =>
+            (pl.planItems || []).map(
+              (item) => `${pl.id}_${item.type}_${item.subType}`
+            )
+          )
+        );
+
+        const toDeleteItems = existingItems.filter(
+          (item) =>
+            activePlanIds.has(item.plan_id) &&
+            !activeItemKeys.has(`${item.plan_id}_${item.type}_${item.sub_type}`)
+        );
+
+        if (toDeleteItems.length > 0) {
+          console.log(
+            `[DataService] Cleaning up ${toDeleteItems.length} orphaned plan items...`
+          );
+          for (const item of toDeleteItems) {
+            await mutateSupabaseData(
+              SUPABASE_REST_PATHS.planItems,
+              'DELETE',
+              null,
+              token,
+              `plan_id=eq.${item.plan_id}&type=eq.${encodeURIComponent(
+                item.type
+              )}&sub_type=eq.${encodeURIComponent(item.sub_type)}`
+            );
+          }
+        }
+      }
+    } catch (e: any) {
+      console.warn(
+        '[DataService] Failed to clean up orphaned plan items:',
+        e.message || e
+      );
+    }
+
+    // Now upsert the remaining active items to the database
     // 1. Faculties
     if (d.FACULTIES.length > 0) {
       await mutateSupabaseData(
