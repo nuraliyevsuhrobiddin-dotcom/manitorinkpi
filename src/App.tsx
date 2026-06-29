@@ -1475,6 +1475,17 @@ const DataManagementPage: React.FC<{
   const [criterionForm, setCriterionForm] = useState({ type: '', subType: '', score: '', description: '' });
   const [userForm, setUserForm] = useState({ username: '', role: 'guest' });
 
+  // Form validation errors
+  const [facultyErrors, setFacultyErrors] = useState<{ name?: string }>({});
+  const [deptErrors, setDeptErrors] = useState<{ name?: string; facultyId?: string }>({});
+  const [divisionErrors, setDivisionErrors] = useState<{ name?: string }>({});
+  const [positionErrors, setPositionErrors] = useState<{ name?: string }>({});
+  const [profErrors, setProfErrors] = useState<{ lastName?: string; firstName?: string; departmentId?: string; birthDate?: string; position?: string }>({});
+  const [projErrors, setProjErrors] = useState<{ name?: string; leaderName?: string; facultyId?: string; departmentId?: string; totalFunding?: string }>({});
+  const [defenseErrors, setDefenseErrors] = useState<{ lastName?: string; firstName?: string; facultyId?: string; departmentId?: string; thesisTopic?: string }>({});
+  const [criterionErrors, setCriterionErrors] = useState<{ type?: string; subType?: string; score?: string }>({});
+  const [userErrors, setUserErrors] = useState<{ username?: string }>({});
+
   // Edit/Delete modals
   const [editFacultyModal, setEditFacultyModal] = useState<{ open: boolean, faculty: any }>({ open: false, faculty: null });
   const [editFacultyName, setEditFacultyName] = useState('');
@@ -1544,34 +1555,106 @@ const DataManagementPage: React.FC<{
   const filteredUsers = useMemo(() => users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase())), [users, searchQuery]);
 
   // CRUD Handlers
-  const handleAddFaculty = (e: React.FormEvent) => { e.preventDefault(); if (!facultyName) return; setFaculties(p => [...p, { id: Date.now(), name: facultyName }]); setFacultyName(''); };
+  const handleAddFaculty = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { name?: string } = {};
+    if (!facultyName.trim()) errs.name = 'Fakultet nomi kiritilishi shart';
+    if (Object.keys(errs).length) { setFacultyErrors(errs); return; }
+    setFacultyErrors({});
+    setFaculties(p => [...p, { id: Date.now(), name: facultyName.trim() }]);
+    setFacultyName('');
+  };
   const handleEditFaculty = () => { setFaculties(p => p.map(f => f.id === editFacultyModal.faculty.id ? { ...f, name: editFacultyName } : f)); setEditFacultyModal({ open: false, faculty: null }); };
   const handleDeleteFaculty = () => { setFaculties(p => p.filter(f => f.id !== deleteFacultyModal.faculty.id)); setDepartments(p => p.filter(d => d.facultyId !== deleteFacultyModal.faculty.id)); setDeleteFacultyModal({ open: false, faculty: null }); };
 
-  const handleAddDepartment = (e: React.FormEvent) => { e.preventDefault(); if (!deptName || !deptFacultyId) return; setDepartments(p => [...p, { id: Date.now(), name: deptName, facultyId: Number(deptFacultyId) }]); setDeptName(''); setDeptFacultyId(faculties[0]?.id || ''); };
+  const handleAddDepartment = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { name?: string; facultyId?: string } = {};
+    if (!deptName.trim()) errs.name = 'Kafedra nomi kiritilishi shart';
+    if (!deptFacultyId) errs.facultyId = 'Fakultetni tanlang';
+    if (Object.keys(errs).length) { setDeptErrors(errs); return; }
+    setDeptErrors({});
+    setDepartments(p => [...p, { id: Date.now(), name: deptName.trim(), facultyId: Number(deptFacultyId) }]);
+    setDeptName('');
+    setDeptFacultyId(faculties[0]?.id || '');
+  };
   const handleEditDept = () => { setDepartments(p => p.map(d => d.id === editDeptModal.dept.id ? { ...d, name: editDeptName, facultyId: Number(editDeptFacultyId) } : d)); setEditDeptModal({ open: false, dept: null }); };
   const handleDeleteDept = () => { setDepartments(p => p.filter(d => d.id !== deleteDeptModal.dept.id)); setProfessors(p => p.filter(prof => prof.departmentId !== deleteDeptModal.dept.id)); setDeleteDeptModal({ open: false, dept: null }); };
 
-  const handleAddDivision = (e: React.FormEvent) => { e.preventDefault(); if (!divisionName) return; setDivisions(p => [...p, { id: Date.now(), name: divisionName }]); setDivisionName(''); };
+  const handleAddDivision = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { name?: string } = {};
+    if (!divisionName.trim()) errs.name = 'Bo‘lim nomi kiritilishi shart';
+    if (Object.keys(errs).length) { setDivisionErrors(errs); return; }
+    setDivisionErrors({});
+    setDivisions(p => [...p, { id: Date.now(), name: divisionName.trim() }]);
+    setDivisionName('');
+  };
   const handleEditDivision = () => { setDivisions(p => p.map(d => d.id === editDivisionModal.division.id ? { ...d, name: editDivisionName } : d)); setEditDivisionModal({ open: false, division: null }); };
   const handleDeleteDivision = () => { setDivisions(p => p.filter(d => d.id !== deleteDivisionModal.division.id)); setDeleteDivisionModal({ open: false, division: null }); };
 
-  const handleAddPosition = (e: React.FormEvent) => { e.preventDefault(); if (!positionName || positions.includes(positionName)) return; setPositions(p => [...p, positionName]); setPositionName(''); };
+  const handleAddPosition = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { name?: string } = {};
+    if (!positionName.trim()) { errs.name = 'Lavozim nomi kiritilishi shart'; }
+    else if (positions.includes(positionName.trim())) { errs.name = 'Bu lavozim allaqachon mavjud'; }
+    if (Object.keys(errs).length) { setPositionErrors(errs); return; }
+    setPositionErrors({});
+    setPositions(p => [...p, positionName.trim()]);
+    setPositionName('');
+  };
   const handleEditPosition = () => { const { oldName } = editPositionModal; setPositions(p => p.map(pos => pos === oldName ? editPositionName : pos)); setProfessors(profs => profs.map(prof => prof.position === oldName ? { ...prof, position: editPositionName } : prof)); setEditPositionModal({ open: false, oldName: '' }); };
   const handleDeletePosition = () => { setPositions(p => p.filter(pos => pos !== deletePositionModal.name)); setDeletePositionModal({ open: false, name: '' }); };
 
-  const handleAddProfessor = (e: React.FormEvent) => { e.preventDefault(); if (!profForm.lastName || !profForm.firstName || !profForm.departmentId) return; const newProfessor: any = { id: Date.now(), ...profForm, departmentId: Number(profForm.departmentId), staffUnit: Number(profForm.staffUnit) }; setProfessors(p => [...p, newProfessor]); setProfForm({ lastName: '', firstName: '', patronymic: '', departmentId: departments[0]?.id || '', position: positions[0] || '', degree: 'Yo‘q', title: 'Yo‘q', phone: '', staffUnit: 1.0, gender: 'erkak', birthDate: '', employmentType: employmentTypes[0] || 'Asosiy' }); };
-  const handleProfFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProfForm(p => ({ ...p, [name]: value })); };
+  const handleAddProfessor = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { lastName?: string; firstName?: string; departmentId?: string; birthDate?: string; position?: string } = {};
+    if (!profForm.lastName.trim()) errs.lastName = 'Familiya kiritilishi shart';
+    if (!profForm.firstName.trim()) errs.firstName = 'Ism kiritilishi shart';
+    if (!profForm.departmentId) errs.departmentId = 'Kafedrani tanlang';
+    if (!profForm.birthDate) errs.birthDate = 'Tug‘ilgan sana kiritilishi shart';
+    if (!profForm.position) errs.position = 'Lavozimni tanlang';
+    if (Object.keys(errs).length) { setProfErrors(errs); return; }
+    setProfErrors({});
+    const newProfessor: any = { id: Date.now(), ...profForm, departmentId: Number(profForm.departmentId), staffUnit: Number(profForm.staffUnit) };
+    setProfessors(p => [...p, newProfessor]);
+    setProfForm({ lastName: '', firstName: '', patronymic: '', departmentId: departments[0]?.id || '', position: positions[0] || '', degree: 'Yo’q', title: 'Yo’q', phone: '', staffUnit: 1.0, gender: 'erkak', birthDate: '', employmentType: employmentTypes[0] || 'Asosiy' });
+  };
+  const handleProfFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProfForm(p => ({ ...p, [name]: value })); setProfErrors(p => ({ ...p, [name]: undefined })); };
 
-  const handleAddProject = (e: React.FormEvent) => { e.preventDefault(); if (!projForm.name || !projForm.leaderName || !projForm.departmentId || !projForm.facultyId) return; const newProject: Project = { id: Date.now(), ...projForm, facultyId: Number(projForm.facultyId), departmentId: Number(projForm.departmentId), totalFunding: Number(projForm.totalFunding), duration: Number(projForm.duration) }; setProjects(p => [...p, newProject]); setProjForm({ name: '', type: projectTypes[0], direction: projectDirections[0], leaderPosition: projectLeaderPositions[0], leaderName: '', facultyId: '', departmentId: '', totalFunding: 0, duration: projectDurations[0] }); };
+  const handleAddProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { name?: string; leaderName?: string; facultyId?: string; departmentId?: string; totalFunding?: string } = {};
+    if (!projForm.name.trim()) errs.name = 'Loyiha nomi kiritilishi shart';
+    if (!projForm.leaderName.trim()) errs.leaderName = 'Rahbar kiritilishi shart';
+    if (!projForm.facultyId) errs.facultyId = 'Fakultetni tanlang';
+    if (!projForm.departmentId) errs.departmentId = 'Kafedrani tanlang';
+    if (!projForm.totalFunding || Number(projForm.totalFunding) <= 0) errs.totalFunding = 'Summa 0 dan katta bo‘lishi shart';
+    if (Object.keys(errs).length) { setProjErrors(errs); return; }
+    setProjErrors({});
+    const newProject: Project = { id: Date.now(), ...projForm, facultyId: Number(projForm.facultyId), departmentId: Number(projForm.departmentId), totalFunding: Number(projForm.totalFunding), duration: Number(projForm.duration) };
+    setProjects(p => [...p, newProject]);
+    setProjForm({ name: '', type: projectTypes[0], direction: projectDirections[0], leaderPosition: projectLeaderPositions[0], leaderName: '', facultyId: '', departmentId: '', totalFunding: 0, duration: projectDurations[0] });
+  };
   const handleEditProject = () => { setProjects(p => p.map(proj => proj.id === editProjectModal.project.id ? { ...proj, ...editProjForm, facultyId: Number(editProjForm.facultyId), departmentId: Number(editProjForm.departmentId), totalFunding: Number(editProjForm.totalFunding), duration: Number(editProjForm.duration) } : proj)); setEditProjectModal({ open: false, project: null }); };
   const handleDeleteProject = () => { setProjects(p => p.filter(proj => proj.id !== deleteProjectModal.project.id)); setDeleteProjectModal({ open: false, project: null }); };
-  const handleProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProjForm(p => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o‘qituvchi') { newState.leaderName = ''; } return newState; }); };
-  const handleEditProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setEditProjForm((p: any) => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o‘qituvchi') { newState.leaderName = ''; } return newState; }); };
+  const handleProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProjForm(p => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o’qituvchi') { newState.leaderName = ''; } return newState; }); setProjErrors(p => ({ ...p, [name]: undefined })); };
+  const handleEditProjFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setEditProjForm((p: any) => { const newState = { ...p, [name]: value }; if (name === 'facultyId') { newState.departmentId = ''; } if (name === 'leaderPosition' && value !== 'Professor-o’qituvchi') { newState.leaderName = ''; } return newState; }); };
   const filteredDeptsForForm = useMemo(() => { if (!projForm.facultyId) return []; return departments.filter(d => d.facultyId === Number(projForm.facultyId)); }, [projForm.facultyId, departments]);
   const filteredDeptsForEditForm = useMemo(() => { if (!editProjForm.facultyId) return []; return departments.filter(d => d.facultyId === Number(editProjForm.facultyId)); }, [editProjForm.facultyId, departments]);
 
-  const handleAddCriterion = (e: React.FormEvent) => { e.preventDefault(); const { type, subType, score, description } = criterionForm; if (!type || !subType || !score) return; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); if (!n[type]) n[type] = {}; n[type][subType] = { score: Number(score), description }; return n; }); setCriterionForm({ type: '', subType: '', score: '', description: '' }); };
+  const handleAddCriterion = (e: React.FormEvent) => {
+    e.preventDefault();
+    const { type, subType, score, description } = criterionForm;
+    const errs: { type?: string; subType?: string; score?: string } = {};
+    if (!type.trim()) errs.type = 'Tur kiritilishi shart';
+    if (!subType.trim()) errs.subType = 'Nom kiritilishi shart';
+    if (!score || Number(score) <= 0) errs.score = 'Ball 0 dan katta bo‘lishi shart';
+    if (Object.keys(errs).length) { setCriterionErrors(errs); return; }
+    setCriterionErrors({});
+    setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); if (!n[type]) n[type] = {}; n[type][subType] = { score: Number(score), description }; return n; });
+    setCriterionForm({ type: '', subType: '', score: '', description: '' });
+  };
   const handleEditCriterion = () => { const { type, subType, data } = editCriterionModal; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); n[type][subType] = { score: Number(data.score), description: data.description }; return n; }); setEditCriterionModal({ open: false, type: '', subType: '', data: null }); };
   const handleDeleteCriterion = () => { const { type, subType } = deleteCriterionModal; setScoringSystem((p: ScoringSystem) => { const n = JSON.parse(JSON.stringify(p)); delete n[type][subType]; if (Object.keys(n[type]).length === 0) delete n[type]; return n; }); setDeleteCriterionModal({ open: false, type: '', subType: '' }); };
   const handleEditCriterionType = () => {
@@ -1604,7 +1687,16 @@ const DataManagementPage: React.FC<{
     setEditCriterionTypeModal({ open: false, oldType: '', newType: '' });
   };
 
-  const handleAddUser = (e: React.FormEvent) => { e.preventDefault(); if (!userForm.username) return; const newUser: any = { id: Date.now(), username: userForm.username, role: userForm.role }; setUsers((p: User[]) => [...p, newUser]); setUserForm({ username: '', role: 'guest' }); };
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const errs: { username?: string } = {};
+    if (!userForm.username.trim()) errs.username = 'Foydalanuvchi nomi kiritilishi shart';
+    if (Object.keys(errs).length) { setUserErrors(errs); return; }
+    setUserErrors({});
+    const newUser: any = { id: Date.now(), username: userForm.username.trim(), role: userForm.role };
+    setUsers((p: User[]) => [...p, newUser]);
+    setUserForm({ username: '', role: 'guest' });
+  };
   const handleEditUser = () => { setEditUserModal({ open: false, user: null }); };
   const handleDeleteUser = () => { setUsers(p => p.filter(u => u.id !== deleteUserModal.user.id)); setDeleteUserModal({ open: false, user: null }); };
 
@@ -1617,9 +1709,18 @@ const DataManagementPage: React.FC<{
       }
       return newState;
     });
+    setDefenseErrors(p => ({ ...p, [name]: undefined }));
   };
   const handleAddDefense = (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: { lastName?: string; firstName?: string; facultyId?: string; departmentId?: string; thesisTopic?: string } = {};
+    if (!defenseForm.lastName.trim()) errs.lastName = 'Familiya kiritilishi shart';
+    if (!defenseForm.firstName.trim()) errs.firstName = 'Ism kiritilishi shart';
+    if (!defenseForm.facultyId) errs.facultyId = 'Fakultetni tanlang';
+    if (!defenseForm.departmentId) errs.departmentId = 'Kafedrani tanlang';
+    if (!defenseForm.thesisTopic.trim()) errs.thesisTopic = 'Dissertatsiya mavzusi kiritilishi shart';
+    if (Object.keys(errs).length) { setDefenseErrors(errs); return; }
+    setDefenseErrors({});
     const newDefense = { ...defenseForm, id: Date.now(), facultyId: Number(defenseForm.facultyId), departmentId: Number(defenseForm.departmentId) };
     setThesisDefenses(p => [...p, newDefense]);
     setDefenseForm({
@@ -1663,8 +1764,11 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi fakultet qo'shish</h3>
-              <form onSubmit={handleAddFaculty} className="space-y-4">
-                <input type="text" placeholder="Fakultet nomi" value={facultyName} onChange={e => setFacultyName(e.target.value)} className="w-full p-2 border rounded" required />
+              <form onSubmit={handleAddFaculty} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" placeholder="Fakultet nomi" value={facultyName} onChange={e => { setFacultyName(e.target.value); setFacultyErrors({}); }} className={`w-full p-2 border rounded ${facultyErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {facultyErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{facultyErrors.name}</p>}
+                </div>
                 <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
               </form>
             </Card>
@@ -1695,12 +1799,18 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi kafedra qo'shish</h3>
-              <form onSubmit={handleAddDepartment} className="space-y-4">
-                <input type="text" placeholder="Kafedra nomi" value={deptName} onChange={e => setDeptName(e.target.value)} className="w-full p-2 border rounded" required />
-                <select value={deptFacultyId} onChange={e => setDeptFacultyId(e.target.value)} className="w-full p-2 bg-white border rounded" required>
-                  <option value="" disabled>Fakultetni tanlang</option>
-                  {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
+              <form onSubmit={handleAddDepartment} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" placeholder="Kafedra nomi" value={deptName} onChange={e => { setDeptName(e.target.value); setDeptErrors(p => ({ ...p, name: undefined })); }} className={`w-full p-2 border rounded ${deptErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {deptErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.name}</p>}
+                </div>
+                <div>
+                  <select value={deptFacultyId} onChange={e => { setDeptFacultyId(e.target.value); setDeptErrors(p => ({ ...p, facultyId: undefined })); }} className={`w-full p-2 bg-white border rounded ${deptErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
+                    <option value="" disabled>Fakultetni tanlang</option>
+                    {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  </select>
+                  {deptErrors.facultyId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.facultyId}</p>}
+                </div>
                 <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
               </form>
             </Card>
@@ -1733,8 +1843,11 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi bo'lim qo'shish</h3>
-              <form onSubmit={handleAddDivision} className="space-y-4">
-                <input type="text" placeholder="Bo'lim nomi" value={divisionName} onChange={e => setDivisionName(e.target.value)} className="w-full p-2 border rounded" required />
+              <form onSubmit={handleAddDivision} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" placeholder="Bo'lim nomi" value={divisionName} onChange={e => { setDivisionName(e.target.value); setDivisionErrors({}); }} className={`w-full p-2 border rounded ${divisionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {divisionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{divisionErrors.name}</p>}
+                </div>
                 <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
               </form>
             </Card>
@@ -1765,8 +1878,11 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi lavozim qo'shish</h3>
-              <form onSubmit={handleAddPosition} className="space-y-4">
-                <input type="text" placeholder="Lavozim nomi" value={positionName} onChange={e => setPositionName(e.target.value)} className="w-full p-2 border rounded" required />
+              <form onSubmit={handleAddPosition} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" placeholder="Lavozim nomi" value={positionName} onChange={e => { setPositionName(e.target.value); setPositionErrors({}); }} className={`w-full p-2 border rounded ${positionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {positionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{positionErrors.name}</p>}
+                </div>
                 <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
               </form>
             </Card>
@@ -1796,20 +1912,49 @@ const DataManagementPage: React.FC<{
       case 'professors': return (
           <Card>
             <h3 className="text-lg font-semibold mb-4">Yangi professor-o'qituvchi qo'shish</h3>
-            <form onSubmit={handleAddProfessor} className="space-y-4">
+            <form onSubmit={handleAddProfessor} className="space-y-4" noValidate>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <input type="text" name="lastName" placeholder="Familiyasi" value={profForm.lastName} onChange={handleProfFormChange} className="p-2 border rounded" required />
-                <input type="text" name="firstName" placeholder="Ismi" value={profForm.firstName} onChange={handleProfFormChange} className="p-2 border rounded" required />
-                <input type="text" name="patronymic" placeholder="Otasining ismi" value={profForm.patronymic} onChange={handleProfFormChange} className="p-2 border rounded" />
-                <input type="date" name="birthDate" value={profForm.birthDate} onChange={handleProfFormChange} className="p-2 border rounded" required />
-                <select name="gender" value={profForm.gender} onChange={handleProfFormChange} className="p-2 bg-white border rounded"><option value="erkak">Erkak</option><option value="ayol">Ayol</option></select>
-                <select name="departmentId" value={profForm.departmentId} onChange={handleProfFormChange} className="p-2 bg-white border rounded" required><option value="" disabled>Kafedrani tanlang</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-                <select name="position" value={profForm.position} onChange={handleProfFormChange} className="p-2 bg-white border rounded" required><option value="" disabled>Lavozimni tanlang</option>{positions.map(p => <option key={p} value={p}>{p}</option>)}</select>
-                <select name="employmentType" value={profForm.employmentType} onChange={handleProfFormChange} className="p-2 bg-white border rounded" required><option value="" disabled>O'rindoshlik turini tanlang</option>{employmentTypes.map(p => <option key={p} value={p}>{p}</option>)}</select>
-                <select name="degree" value={profForm.degree} onChange={handleProfFormChange} className="p-2 bg-white border rounded"><option>Yo‘q</option><option>PhD</option><option>DSc</option></select>
-                <select name="title" value={profForm.title} onChange={handleProfFormChange} className="p-2 bg-white border rounded"><option>Yo‘q</option><option>Dotsent</option><option>Professor</option></select>
-                <input type="text" name="phone" placeholder="Telefon" value={profForm.phone} onChange={handleProfFormChange} className="p-2 border rounded" />
-                <input type="number" name="staffUnit" placeholder="Stavka" value={profForm.staffUnit} onChange={handleProfFormChange} step="0.25" min="0" className="p-2 border rounded" />
+                <div>
+                  <input type="text" name="lastName" placeholder="Familiyasi" value={profForm.lastName} onChange={handleProfFormChange} className={`w-full p-2 border rounded ${profErrors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {profErrors.lastName && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{profErrors.lastName}</p>}
+                </div>
+                <div>
+                  <input type="text" name="firstName" placeholder="Ismi" value={profForm.firstName} onChange={handleProfFormChange} className={`w-full p-2 border rounded ${profErrors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {profErrors.firstName && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{profErrors.firstName}</p>}
+                </div>
+                <div>
+                  <input type="text" name="patronymic" placeholder="Otasining ismi" value={profForm.patronymic} onChange={handleProfFormChange} className="w-full p-2 border border-gray-300 rounded" />
+                </div>
+                <div>
+                  <input type="date" name="birthDate" value={profForm.birthDate} onChange={handleProfFormChange} className={`w-full p-2 border rounded ${profErrors.birthDate ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {profErrors.birthDate && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{profErrors.birthDate}</p>}
+                </div>
+                <div>
+                  <select name="gender" value={profForm.gender} onChange={handleProfFormChange} className="w-full p-2 bg-white border border-gray-300 rounded"><option value="erkak">Erkak</option><option value="ayol">Ayol</option></select>
+                </div>
+                <div>
+                  <select name="departmentId" value={profForm.departmentId} onChange={handleProfFormChange} className={`w-full p-2 bg-white border rounded ${profErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}><option value="" disabled>Kafedrani tanlang</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+                  {profErrors.departmentId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{profErrors.departmentId}</p>}
+                </div>
+                <div>
+                  <select name="position" value={profForm.position} onChange={handleProfFormChange} className={`w-full p-2 bg-white border rounded ${profErrors.position ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}><option value="" disabled>Lavozimni tanlang</option>{positions.map(p => <option key={p} value={p}>{p}</option>)}</select>
+                  {profErrors.position && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{profErrors.position}</p>}
+                </div>
+                <div>
+                  <select name="employmentType" value={profForm.employmentType} onChange={handleProfFormChange} className="w-full p-2 bg-white border border-gray-300 rounded"><option value="" disabled>O'rindoshlik turini tanlang</option>{employmentTypes.map(p => <option key={p} value={p}>{p}</option>)}</select>
+                </div>
+                <div>
+                  <select name="degree" value={profForm.degree} onChange={handleProfFormChange} className="w-full p-2 bg-white border border-gray-300 rounded"><option>Yo'q</option><option>PhD</option><option>DSc</option></select>
+                </div>
+                <div>
+                  <select name="title" value={profForm.title} onChange={handleProfFormChange} className="w-full p-2 bg-white border border-gray-300 rounded"><option>Yo'q</option><option>Dotsent</option><option>Professor</option></select>
+                </div>
+                <div>
+                  <input type="text" name="phone" placeholder="Telefon" value={profForm.phone} onChange={handleProfFormChange} className="w-full p-2 border border-gray-300 rounded" />
+                </div>
+                <div>
+                  <input type="number" name="staffUnit" placeholder="Stavka" value={profForm.staffUnit} onChange={handleProfFormChange} step="0.25" min="0" className="w-full p-2 border border-gray-300 rounded" />
+                </div>
               </div>
               <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
             </form>
@@ -1819,23 +1964,38 @@ const DataManagementPage: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
             <h3 className="text-lg font-semibold mb-4">Yangi loyiha/startap qo'shish</h3>
-            <form onSubmit={handleAddProject} className="space-y-4">
-              <input type="text" name="name" placeholder="Loyiha / Startap nomi" value={projForm.name} onChange={handleProjFormChange} className="w-full p-2 border rounded" required />
-              <select name="type" value={projForm.type} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded">{projectTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
-              <select name="direction" value={projForm.direction} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded">{projectDirections.map(d => <option key={d} value={d}>{d}</option>)}</select>
-              <select name="leaderPosition" value={projForm.leaderPosition} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded">{projectLeaderPositions.map(p => <option key={p} value={p}>{p}</option>)}</select>
-              {projForm.leaderPosition === 'Professor-o‘qituvchi' ? (
-                <select name="leaderName" value={projForm.leaderName} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded" required>
-                  <option value="" disabled>Rahbarni tanlang</option>
-                  {professors.map(p => <option key={p.id} value={getProfessorName(p)}>{getProfessorName(p)}</option>)}
-                </select>
-              ) : (
-                <input type="text" name="leaderName" placeholder="Rahbar F.I.Sh." value={projForm.leaderName} onChange={handleProjFormChange} className="w-full p-2 border rounded" required />
-              )}
-              <select name="facultyId" value={projForm.facultyId} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded" required><option value="" disabled>Fakultetni tanlang</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-              <select name="departmentId" value={projForm.departmentId} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded" required disabled={!projForm.facultyId}><option value="" disabled>Kafedrani tanlang</option>{filteredDeptsForForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-              <input type="number" name="totalFunding" placeholder="Umumiy summa (mln so'm)" value={projForm.totalFunding} onChange={handleProjFormChange} className="w-full p-2 border rounded" required />
-              <select name="duration" value={projForm.duration} onChange={handleProjFormChange} className="w-full p-2 bg-white border rounded">{projectDurations.map(d => <option key={d} value={d}>{d} yillik</option>)}</select>
+            <form onSubmit={handleAddProject} className="space-y-4" noValidate>
+              <div>
+                <input type="text" name="name" placeholder="Loyiha / Startap nomi" value={projForm.name} onChange={handleProjFormChange} className={`w-full p-2 border rounded ${projErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {projErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{projErrors.name}</p>}
+              </div>
+              <select name="type" value={projForm.type} onChange={handleProjFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{projectTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select name="direction" value={projForm.direction} onChange={handleProjFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{projectDirections.map(d => <option key={d} value={d}>{d}</option>)}</select>
+              <select name="leaderPosition" value={projForm.leaderPosition} onChange={handleProjFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{projectLeaderPositions.map(p => <option key={p} value={p}>{p}</option>)}</select>
+              <div>
+                {projForm.leaderPosition === 'Professor-o’qituvchi' ? (
+                  <select name="leaderName" value={projForm.leaderName} onChange={handleProjFormChange} className={`w-full p-2 bg-white border rounded ${projErrors.leaderName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
+                    <option value="" disabled>Rahbarni tanlang</option>
+                    {professors.map(p => <option key={p.id} value={getProfessorName(p)}>{getProfessorName(p)}</option>)}
+                  </select>
+                ) : (
+                  <input type="text" name="leaderName" placeholder="Rahbar F.I.Sh." value={projForm.leaderName} onChange={handleProjFormChange} className={`w-full p-2 border rounded ${projErrors.leaderName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                )}
+                {projErrors.leaderName && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{projErrors.leaderName}</p>}
+              </div>
+              <div>
+                <select name="facultyId" value={projForm.facultyId} onChange={handleProjFormChange} className={`w-full p-2 bg-white border rounded ${projErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}><option value="" disabled>Fakultetni tanlang</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+                {projErrors.facultyId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{projErrors.facultyId}</p>}
+              </div>
+              <div>
+                <select name="departmentId" value={projForm.departmentId} onChange={handleProjFormChange} className={`w-full p-2 bg-white border rounded ${projErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} disabled={!projForm.facultyId}><option value="" disabled>Kafedrani tanlang</option>{filteredDeptsForForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+                {projErrors.departmentId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{projErrors.departmentId}</p>}
+              </div>
+              <div>
+                <input type="number" name="totalFunding" placeholder="Umumiy summa (mln so'm)" value={projForm.totalFunding} onChange={handleProjFormChange} className={`w-full p-2 border rounded ${projErrors.totalFunding ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {projErrors.totalFunding && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{projErrors.totalFunding}</p>}
+              </div>
+              <select name="duration" value={projForm.duration} onChange={handleProjFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{projectDurations.map(d => <option key={d} value={d}>{d} yillik</option>)}</select>
               <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
             </form>
           </Card>
@@ -1892,20 +2052,35 @@ const DataManagementPage: React.FC<{
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-1">
             <h3 className="text-lg font-semibold mb-4">Yangi himoya qo'shish</h3>
-            <form onSubmit={handleAddDefense} className="space-y-3">
-              <input type="text" name="lastName" placeholder="Familiyasi" value={defenseForm.lastName} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" required />
-              <input type="text" name="firstName" placeholder="Ismi" value={defenseForm.firstName} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" required />
-              <input type="text" name="patronymic" placeholder="Otasining ismi" value={defenseForm.patronymic} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" />
-              <select name="facultyId" value={defenseForm.facultyId} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border rounded" required><option value="" disabled>Fakultetni tanlang</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-              <select name="departmentId" value={defenseForm.departmentId} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border rounded" required disabled={!defenseForm.facultyId}><option value="" disabled>Kafedrani tanlang</option>{filteredDeptsForDefenseForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-              <select name="specialty" value={defenseForm.specialty} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border rounded">{specialties.map(s => <option key={s} value={s}>{s}</option>)}</select>
-              <select name="type" value={defenseForm.type} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border rounded">{defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
-              <select name="fieldOfScience" value={defenseForm.fieldOfScience} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border rounded">{fieldsOfScience.map(f => <option key={f} value={f}>{f}</option>)}</select>
-              <input type="text" name="thesisTopic" placeholder="Dissertatsiya mavzusi" value={defenseForm.thesisTopic} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" required />
-              <input type="text" name="supervisor" placeholder="Ilmiy rahbar" value={defenseForm.supervisor} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" />
-              <input type="text" name="defenseOrganization" placeholder="Himoya qilgan tashkilot" value={defenseForm.defenseOrganization} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" />
-              <input type="text" name="councilNumber" placeholder="Kengash raqami" value={defenseForm.councilNumber} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" />
-              <input type="date" name="defenseDate" value={defenseForm.defenseDate} onChange={handleDefenseFormChange} className="w-full p-2 border rounded" />
+            <form onSubmit={handleAddDefense} className="space-y-3" noValidate>
+              <div>
+                <input type="text" name="lastName" placeholder="Familiyasi" value={defenseForm.lastName} onChange={handleDefenseFormChange} className={`w-full p-2 border rounded ${defenseErrors.lastName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {defenseErrors.lastName && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.lastName}</p>}
+              </div>
+              <div>
+                <input type="text" name="firstName" placeholder="Ismi" value={defenseForm.firstName} onChange={handleDefenseFormChange} className={`w-full p-2 border rounded ${defenseErrors.firstName ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {defenseErrors.firstName && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.firstName}</p>}
+              </div>
+              <input type="text" name="patronymic" placeholder="Otasining ismi" value={defenseForm.patronymic} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
+              <div>
+                <select name="facultyId" value={defenseForm.facultyId} onChange={handleDefenseFormChange} className={`w-full p-2 bg-white border rounded ${defenseErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}><option value="" disabled>Fakultetni tanlang</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+                {defenseErrors.facultyId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.facultyId}</p>}
+              </div>
+              <div>
+                <select name="departmentId" value={defenseForm.departmentId} onChange={handleDefenseFormChange} className={`w-full p-2 bg-white border rounded ${defenseErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} disabled={!defenseForm.facultyId}><option value="" disabled>Kafedrani tanlang</option>{filteredDeptsForDefenseForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
+                {defenseErrors.departmentId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.departmentId}</p>}
+              </div>
+              <select name="specialty" value={defenseForm.specialty} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{specialties.map(s => <option key={s} value={s}>{s}</option>)}</select>
+              <select name="type" value={defenseForm.type} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
+              <select name="fieldOfScience" value={defenseForm.fieldOfScience} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{fieldsOfScience.map(f => <option key={f} value={f}>{f}</option>)}</select>
+              <div>
+                <input type="text" name="thesisTopic" placeholder="Dissertatsiya mavzusi" value={defenseForm.thesisTopic} onChange={handleDefenseFormChange} className={`w-full p-2 border rounded ${defenseErrors.thesisTopic ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {defenseErrors.thesisTopic && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.thesisTopic}</p>}
+              </div>
+              <input type="text" name="supervisor" placeholder="Ilmiy rahbar" value={defenseForm.supervisor} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
+              <input type="text" name="defenseOrganization" placeholder="Himoya qilgan tashkilot" value={defenseForm.defenseOrganization} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
+              <input type="text" name="councilNumber" placeholder="Kengash raqami" value={defenseForm.councilNumber} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
+              <input type="date" name="defenseDate" value={defenseForm.defenseDate} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
             </form>
           </Card>
@@ -1963,11 +2138,20 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi mezon qo'shish</h3>
-              <form onSubmit={handleAddCriterion} className="space-y-4">
-                <input type="text" name="type" placeholder="Turi (masalan, publication)" value={criterionForm.type} onChange={e => setCriterionForm(p => ({...p, type: e.target.value}))} className="w-full p-2 border rounded" required />
-                <input type="text" name="subType" placeholder="Nomi (masalan, Scopus Q1)" value={criterionForm.subType} onChange={e => setCriterionForm(p => ({...p, subType: e.target.value}))} className="w-full p-2 border rounded" required />
-                <input type="number" name="score" placeholder="Ball" value={criterionForm.score} onChange={e => setCriterionForm(p => ({...p, score: e.target.value}))} className="w-full p-2 border rounded" required />
-                <input type="text" name="description" placeholder="Tavsifi" value={criterionForm.description} onChange={e => setCriterionForm(p => ({...p, description: e.target.value}))} className="w-full p-2 border rounded" />
+              <form onSubmit={handleAddCriterion} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" name="type" placeholder="Turi (masalan, publication)" value={criterionForm.type} onChange={e => { setCriterionForm(p => ({...p, type: e.target.value})); setCriterionErrors(p => ({...p, type: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.type ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {criterionErrors.type && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.type}</p>}
+                </div>
+                <div>
+                  <input type="text" name="subType" placeholder="Nomi (masalan, Scopus Q1)" value={criterionForm.subType} onChange={e => { setCriterionForm(p => ({...p, subType: e.target.value})); setCriterionErrors(p => ({...p, subType: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.subType ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {criterionErrors.subType && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.subType}</p>}
+                </div>
+                <div>
+                  <input type="number" name="score" placeholder="Ball" value={criterionForm.score} onChange={e => { setCriterionForm(p => ({...p, score: e.target.value})); setCriterionErrors(p => ({...p, score: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.score ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {criterionErrors.score && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.score}</p>}
+                </div>
+                <input type="text" name="description" placeholder="Tavsifi" value={criterionForm.description} onChange={e => setCriterionForm(p => ({...p, description: e.target.value}))} className="w-full p-2 border border-gray-300 rounded" />
                 <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
               </form>
             </Card>
@@ -2022,9 +2206,12 @@ const DataManagementPage: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card>
               <h3 className="text-lg font-semibold mb-4">Yangi foydalanuvchi qo'shish</h3>
-              <form onSubmit={handleAddUser} className="space-y-4">
-                <input type="text" placeholder="Login" value={userForm.username} onChange={e => setUserForm(p => ({...p, username: e.target.value}))} className="w-full p-2 border rounded" required />
-                <select value={userForm.role} onChange={e => setUserForm(p => ({...p, role: e.target.value}))} className="w-full p-2 bg-white border rounded">
+              <form onSubmit={handleAddUser} className="space-y-4" noValidate>
+                <div>
+                  <input type="text" placeholder="Login" value={userForm.username} onChange={e => { setUserForm(p => ({...p, username: e.target.value})); setUserErrors({}); }} className={`w-full p-2 border rounded ${userErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  {userErrors.username && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{userErrors.username}</p>}
+                </div>
+                <select value={userForm.role} onChange={e => setUserForm(p => ({...p, role: e.target.value}))} className="w-full p-2 bg-white border border-gray-300 rounded">
                   <option value="superadmin">Super Admin</option>
                   <option value="guest">Mehmon</option>
                 </select>
