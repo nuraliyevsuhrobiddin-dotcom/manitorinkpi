@@ -77,8 +77,7 @@ export interface ThesisDefense {
   type: 'PhD' | 'DSc' | string;
   fieldOfScience: string;
   thesisTopic: string;
-  supervisor: string;
-  defenseOrganization: string;
+  rushnay: string;
   councilNumber: string;
   defenseDate: string;
 }

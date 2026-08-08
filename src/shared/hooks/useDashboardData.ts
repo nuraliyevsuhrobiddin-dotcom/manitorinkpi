@@ -162,8 +162,7 @@ const toThesisDefense = (r: any) => ({
   type: normalizeString(r.type),
   fieldOfScience: normalizeString(r.field_of_science ?? r.fieldOfScience),
   thesisTopic: normalizeString(r.thesis_topic ?? r.thesisTopic),
-  supervisor: normalizeString(r.supervisor),
-  defenseOrganization: normalizeString(r.defense_organization ?? r.defenseOrganization),
+  rushnay: normalizeString(r.rushnay ?? r.rushnay),
   councilNumber: normalizeString(r.council_number ?? r.councilNumber),
   defenseDate: normalizeString(r.defense_date ?? r.defenseDate),
 });

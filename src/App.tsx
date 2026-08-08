@@ -251,205 +251,259 @@ const EnhancedCriteriaStatistics: React.FC<{
   selectedYear: number;
   plans: Plan[];
 }> = ({ achievements, professors, faculties, departments, scoringSystem, selectedYear, plans }) => {
-  const [view, setView] = useState<'faculties' | 'departments' | 'professors'>('faculties');
+  const [section, setSection] = useState<'general' | 'faculty' | 'department'>('general');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<number | ''>('');
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | ''>('');
 
-  const analysisData = useMemo(() => {
-    const data: { [view: string]: { [id: string]: { [type: string]: { [subType: string]: { plan: number, actual: number } } } } } = {
-      faculties: {},
-      departments: {},
-      professors: {},
-    };
+  const professorsById = useMemo(() => {
+    return professors.reduce<Record<number, typeof professors[number]>>((acc, prof) => {
+      if (prof?.id != null) acc[prof.id] = prof;
+      return acc;
+    }, {});
+  }, [professors]);
 
-    const entityMap: { [key: string]: { items: any[], prefix: string } } = {
-      faculties: { items: faculties, prefix: 'f_' },
-      departments: { items: departments, prefix: 'd_' },
-      professors: { items: professors, prefix: 'p_' },
-    };
-
-    // Initialize data structure
-    for (const view of ['faculties', 'departments', 'professors']) {
-      entityMap[view].items.forEach(item => {
-        const entityId = `${entityMap[view].prefix}${item.id}`;
-        data[view][entityId] = {};
-        Object.keys(scoringSystem).forEach(type => {
-          data[view][entityId][type] = {};
-          // @ts-ignore
-          Object.keys(scoringSystem[type]).forEach(subType => {
-            data[view][entityId][type][subType] = { plan: 0, actual: 0 };
-          });
-        });
+  const createEmptyStats = useCallback(() => {
+    const stats: { [type: string]: { [subType: string]: { plan: number; actual: number } } } = {};
+    Object.keys(scoringSystem).forEach(type => {
+      stats[type] = {};
+      Object.keys(scoringSystem[type]).forEach(subType => {
+        stats[type][subType] = { plan: 0, actual: 0 };
       });
-    }
+    });
+    return stats;
+  }, [scoringSystem]);
 
-    // Populate plans
-    const yearPlans = plans.filter(p => p.year === selectedYear);
+  const aggregatedStats = useMemo(() => {
+    const generalStats = createEmptyStats();
+    const facultyStats: Record<number, { [type: string]: { [subType: string]: { plan: number; actual: number } } }> = {};
+    const departmentStats: Record<number, { [type: string]: { [subType: string]: { plan: number; actual: number } } }> = {};
+
+    faculties.forEach(faculty => {
+      facultyStats[faculty.id] = createEmptyStats();
+    });
+    departments.forEach(department => {
+      departmentStats[department.id] = createEmptyStats();
+    });
+
+    const yearPlans = plans.filter(plan => plan.year === selectedYear);
     yearPlans.forEach(plan => {
-      const prof = professors.find(p => p.id === plan.professorId);
+      const prof = professorsById[plan.professorId];
       if (!prof) return;
+      const facultyId = prof.faculty?.id;
+      const departmentId = prof.department?.id;
 
-      const profId = `p_${prof.id}`;
-      const deptId = prof.department?.id ? `d_${prof.department.id}` : null;
-      const facId = prof.faculty?.id ? `f_${prof.faculty.id}` : null;
-      
       plan.planItems.forEach(item => {
-        if (data.professors[profId]?.[item.type]?.[item.subType]) {
-          data.professors[profId][item.type][item.subType].plan += item.count;
+        if (generalStats[item.type]?.[item.subType]) {
+          generalStats[item.type][item.subType].plan += item.count;
         }
-        if (deptId && data.departments[deptId]?.[item.type]?.[item.subType]) {
-          data.departments[deptId][item.type][item.subType].plan += item.count;
+        if (facultyId && facultyStats[facultyId]?.[item.type]?.[item.subType]) {
+          facultyStats[facultyId][item.type][item.subType].plan += item.count;
         }
-        if (facId && data.faculties[facId]?.[item.type]?.[item.subType]) {
-          data.faculties[facId][item.type][item.subType].plan += item.count;
+        if (departmentId && departmentStats[departmentId]?.[item.type]?.[item.subType]) {
+          departmentStats[departmentId][item.type][item.subType].plan += item.count;
         }
       });
     });
 
-    // Populate actuals (Soni/Amaldasi)
-    const yearAchievements = achievements.filter(a => a.year === selectedYear);
+    const yearAchievements = achievements.filter(ach => ach.year === selectedYear);
     yearAchievements.forEach(ach => {
-      const prof = professors.find(p => p.id === ach.professorId);
+      const prof = professorsById[ach.professorId];
       if (!prof) return;
+      const facultyId = prof.faculty?.id;
+      const departmentId = prof.department?.id;
 
-      const profId = `p_${prof.id}`;
-      const deptId = prof.department?.id ? `d_${prof.department.id}` : null;
-      const facId = prof.faculty?.id ? `f_${prof.faculty.id}` : null;
-
-      if (data.professors[profId]?.[ach.type]?.[ach.subType]) {
-        data.professors[profId][ach.type][ach.subType].actual += ach.count;
+      if (generalStats[ach.type]?.[ach.subType]) {
+        generalStats[ach.type][ach.subType].actual += ach.count;
       }
-      if (deptId && data.departments[deptId]?.[ach.type]?.[ach.subType]) {
-        data.departments[deptId][ach.type][ach.subType].actual += ach.count;
+      if (facultyId && facultyStats[facultyId]?.[ach.type]?.[ach.subType]) {
+        facultyStats[facultyId][ach.type][ach.subType].actual += ach.count;
       }
-      if (facId && data.faculties[facId]?.[ach.type]?.[ach.subType]) {
-        data.faculties[facId][ach.type][ach.subType].actual += ach.count;
+      if (departmentId && departmentStats[departmentId]?.[ach.type]?.[ach.subType]) {
+        departmentStats[departmentId][ach.type][ach.subType].actual += ach.count;
       }
     });
 
-    return data;
-  }, [achievements, plans, professors, departments, faculties, scoringSystem, selectedYear]);
+    return {
+      general: generalStats,
+      faculties: facultyStats,
+      departments: departmentStats,
+    };
+  }, [achievements, plans, professorsById, faculties, departments, selectedYear, createEmptyStats]);
+
+  const selectedFaculty = faculties.find(faculty => faculty.id === selectedFacultyId);
+  const selectedDepartment = departments.find(department => department.id === selectedDepartmentId);
+
+  const currentStats = useMemo(() => {
+    if (section === 'general') return aggregatedStats.general;
+    if (section === 'faculty') return selectedFacultyId ? aggregatedStats.faculties[selectedFacultyId] : null;
+    if (section === 'department') return selectedDepartmentId ? aggregatedStats.departments[selectedDepartmentId] : null;
+    return null;
+  }, [section, selectedFacultyId, selectedDepartmentId, aggregatedStats]);
+
+  const getCompletionPercent = (actual: number, plan: number) => {
+    if (plan === 0) return actual > 0 ? 100 : 0;
+    return (actual / plan) * 100;
+  };
 
   const getPerformanceColorClass = (actual: number, plan: number) => {
+    const percent = getCompletionPercent(actual, plan);
     if (plan === 0) {
       return actual > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
     }
-    const ratio = actual / plan;
-    if (ratio >= 1) return 'bg-green-100 text-green-800';
-    if (ratio >= 0.6) return 'bg-yellow-100 text-yellow-800';
+    if (percent >= 100) return 'bg-green-100 text-green-800';
+    if (percent >= 60) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
-  const renderTable = () => {
-    let items: any[] = [];
-    let idPrefix = '';
-    if (view === 'faculties') { items = faculties; idPrefix = 'f_'; }
-    if (view === 'departments') { items = departments; idPrefix = 'd_'; }
-    if (view === 'professors') { items = professors.map(p => ({...p, name: getProfessorName(p)})); idPrefix = 'p_'; }
+  const handleExportCriteria = () => {
+    if (user.role !== 'admin') {
+      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      return;
+    }
+    if (!currentStats) return;
 
-    const dataForView = analysisData[view];
-    if (!dataForView || Object.keys(dataForView).length === 0) return <p className="text-center py-4">Ma'lumotlar mavjud emas.</p>;
+    const rows = Object.entries(currentStats).flatMap(([type, subTypes]) =>
+      Object.entries(subTypes).map(([subType, values]) => ({
+        '№': 0,
+        'Mezon guruhi': type.replace(/_/g, ' '),
+        'Mezon nomi': subType.replace(/_/g, ' '),
+        'Reja': values.plan,
+        'Amalda': values.actual,
+        'Bajarilish %': +getCompletionPercent(values.actual, values.plan).toFixed(1),
+      }))
+    );
 
-    const totals = items.map(item => {
-        const entityId = `${idPrefix}${item.id}`;
-        let totalSoni = 0;
-        let totalRejasi = 0;
-        let totalAmaldasi = 0;
+    const numberedRows = rows.map((row, index) => ({ ...row, '№': index + 1 }));
+    const ws = XLSX.utils.json_to_sheet(numberedRows, { header: ['№', 'Mezon guruhi', 'Mezon nomi', 'Reja', 'Amalda', 'Bajarilish %'] });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Mezonlar');
+    const targetName =
+      section === 'general'
+        ? 'Institut'
+        : section === 'faculty'
+        ? selectedFaculty?.name || 'Fakultet'
+        : selectedDepartment?.name || 'Kafedra';
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Mezonlar_${section}_${targetName}_${today}.xlsx`);
+  };
 
-        if (dataForView[entityId]) {
-            Object.values(dataForView[entityId]).forEach((subTypes: { [subType: string]: { plan: number; actual: number } }) => {
-                Object.values(subTypes).forEach((values) => {
-                    totalSoni += values.actual;
-                    totalRejasi += values.plan;
-                    totalAmaldasi += values.actual;
-                });
-            });
-        }
-        return { totalSoni, totalRejasi, totalAmaldasi };
-    });
+  const renderCriteriaCards = () => {
+    if (!currentStats) {
+      const prompt = section === 'faculty'
+        ? 'Iltimos, statistikani ko‘rish uchun bir fakultet tanlang.'
+        : section === 'department'
+        ? 'Iltimos, statistikani ko‘rish uchun bir kafedra tanlang.'
+        : 'Maʼlumotlar mavjud emas.';
+      return <p className="text-center py-10 text-gray-500">{prompt}</p>;
+    }
 
     return (
-      <div className="overflow-x-auto relative">
-        <table className="w-full text-sm text-left">
-          <thead className="text-xs text-gray-700 uppercase bg-gray-50 sticky top-0 z-30">
-            <tr>
-              <th rowSpan={2} className="px-4 py-3 align-bottom sticky left-0 bg-gray-50 z-40">Mezon</th>
-              {items.map(item => (
-                <th key={item.id} colSpan={3} className="px-4 py-3 text-center border-l bg-gray-50">{item.name}</th>
+      <div className="space-y-8">
+        {Object.entries(currentStats).map(([type, subTypes]) => (
+          <div key={type}>
+            <h4 className="text-base font-semibold text-gray-800 mb-4">{type.replace(/_/g, ' ')}</h4>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {Object.entries(subTypes).map(([subType, values]) => (
+                <div key={subType} className="border rounded-2xl p-4 bg-white shadow-sm">
+                  <div className="text-sm font-semibold text-gray-700 mb-4">{subType.replace(/_/g, ' ')}</div>
+                  <div className="flex justify-between text-sm text-gray-600 mb-3">
+                    <span>Reja:</span>
+                    <span>{values.plan}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600 mb-3">
+                    <span>Amalda:</span>
+                    <span>{values.actual}</span>
+                  </div>
+                  <div className="text-sm font-semibold text-gray-800">
+                    Bajarilish: <span className={getPerformanceColorClass(values.actual, values.plan)}>{getCompletionPercent(values.actual, values.plan).toFixed(1)}%</span>
+                  </div>
+                </div>
               ))}
-            </tr>
-            <tr>
-              {items.map(item => (
-                <React.Fragment key={item.id}>
-                  <th className="px-2 py-2 text-center font-medium border-l bg-gray-50">Soni</th>
-                  <th className="px-2 py-2 text-center font-medium bg-gray-50">Rejasi</th>
-                  <th className="px-2 py-2 text-center font-medium bg-gray-50">Amaldasi</th>
-                </React.Fragment>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(scoringSystem as ScoringSystem).map(([type, subTypes]) => (
-              <React.Fragment key={type}>
-                <tr className="bg-gray-100 font-bold"><td colSpan={1 + items.length * 3} className="px-4 py-2 capitalize sticky left-0 bg-gray-100 z-10">{type.replace(/_/g, ' ')}</td></tr>
-                {Object.keys(subTypes as ScoringCategory).map(subType => {
-                  return (
-                    <tr key={subType} className="bg-white border-b">
-                      <td className="px-4 py-2 font-medium sticky left-0 bg-white z-10">{subType}</td>
-                      {items.map(item => {
-                        const entityId = `${idPrefix}${item.id}`;
-                        const values = dataForView[entityId]?.[type]?.[subType] || { plan: 0, actual: 0 };
-                        
-                        return (
-                          <React.Fragment key={item.id}>
-                            <td className="px-2 py-2 text-center border-l">{values.actual > 0 ? values.actual : '-'}</td>
-                            <td className="px-2 py-2 text-center">{values.plan > 0 ? values.plan : '-'}</td>
-                            <td className="px-2 py-2 text-center">
-                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPerformanceColorClass(values.actual, values.plan)}`}>
-                                    {values.actual > 0 ? values.actual : '-'}
-                                </span>
-                            </td>
-                          </React.Fragment>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </React.Fragment>
-            ))}
-          </tbody>
-          <tfoot className="bg-gray-200 font-bold text-gray-800">
-            <tr className="border-t-2 border-gray-400">
-                <td className="px-4 py-3 sticky left-0 bg-gray-200 z-10">Barcha mezonlar bo'yicha umumiy statistika</td>
-                {totals.map((t, i) => (
-                    <React.Fragment key={i}>
-                        <td className="px-2 py-3 text-center border-l">{t.totalSoni > 0 ? t.totalSoni : '-'}</td>
-                        <td className="px-2 py-3 text-center">{t.totalRejasi > 0 ? t.totalRejasi : '-'}</td>
-                        <td className="px-2 py-3 text-center">
-                            <span className={`px-2 py-1 text-sm font-semibold rounded-full ${getPerformanceColorClass(t.totalAmaldasi, t.totalRejasi)}`}>
-                                {t.totalAmaldasi > 0 ? t.totalAmaldasi : '-'}
-                            </span>
-                        </td>
-                    </React.Fragment>
-                ))}
-            </tr>
-          </tfoot>
-        </table>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
 
   return (
-    <Card>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Mezonlar bo'yicha tahlil ({selectedYear}-yil)</h3>
+    <Card className="mt-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-500 uppercase tracking-[0.2em]">Mezonlar bo‘yicha tahlil</p>
+          <h3 className="text-lg font-semibold text-gray-800">{selectedYear}-yil</h3>
+        </div>
+        {user && (
+          <button
+            type="button"
+            onClick={handleExportCriteria}
+            disabled={!currentStats}
+            className="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+          >
+            <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklab olish
+          </button>
+        )}
       </div>
+
       <div className="mb-4 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          <button onClick={() => setView('faculties')} className={`${view === 'faculties' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}>Fakultetlar</button>
-          <button onClick={() => setView('departments')} className={`${view === 'departments' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}>Kafedralar</button>
-          <button onClick={() => setView('professors')} className={`${view === 'professors' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'} whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm`}>Professor-o'qituvchilar</button>
+        <nav className="-mb-px flex flex-wrap gap-2" aria-label="Sections">
+          {[
+            { id: 'general', label: 'UMUMIY' },
+            { id: 'faculty', label: 'FAKULTET' },
+            { id: 'department', label: 'KAFEDRA' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                setSection(tab.id as typeof section);
+                setSelectedFacultyId('');
+                setSelectedDepartmentId('');
+              }}
+              className={`${section === tab.id ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500'} whitespace-nowrap rounded-t-lg border-b-2 px-3 py-2 text-sm font-medium`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </nav>
       </div>
-      {renderTable()}
+
+      {(section === 'faculty' || section === 'department') && (
+        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+          {section === 'faculty' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fakultetni tanlang</label>
+              <select
+                value={selectedFacultyId}
+                onChange={e => setSelectedFacultyId(e.target.value ? Number(e.target.value) : '')}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Barcha fakultetlar</option>
+                {faculties.map(faculty => (
+                  <option key={faculty.id} value={faculty.id}>{faculty.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          {section === 'department' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Kafedrani tanlang</label>
+              <select
+                value={selectedDepartmentId}
+                onChange={e => setSelectedDepartmentId(e.target.value ? Number(e.target.value) : '')}
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">Barcha kafedralar</option>
+                {departments.map(department => (
+                  <option key={department.id} value={department.id}>{department.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+
+      {renderCriteriaCards()}
     </Card>
   );
 };
@@ -1159,6 +1213,10 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
   }
 
   const handleExport = () => {
+    if (user.role !== 'admin') {
+      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      return;
+    }
     const dataToExport = professorsToDisplay.map((prof: any, index: number) => ({
       '№': (currentPage - 1) * pageSize + index + 1,
       'F.I.Sh.': getProfessorName(prof),
@@ -1212,7 +1270,7 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
             </div>
           )}
         </div>
-        {canEdit && (
+        {user && canEdit && (
           <button onClick={handleExport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
             <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
           </button>
@@ -1468,8 +1526,8 @@ const DataManagementPage: React.FC<{
     totalFunding: 0, duration: projectDurations[0]
   });
   const [defenseForm, setDefenseForm] = useState<Omit<ThesisDefense, 'id'>>({
-    lastName: '', firstName: '', patronymic: '', facultyId: '' as any, departmentId: '' as any, specialty: specialties[0],
-    type: 'PhD', fieldOfScience: fieldsOfScience[0], thesisTopic: '', supervisor: '', defenseOrganization: '',
+    lastName: '', firstName: '', patronymic: '', facultyId: '' as any, departmentId: '' as any, specialty: '',
+    type: 'PhD', fieldOfScience: '', thesisTopic: '', rushnay: '',
     councilNumber: '', defenseDate: ''
   });
   const [criterionForm, setCriterionForm] = useState({ type: '', subType: '', score: '', description: '' });
@@ -1724,8 +1782,8 @@ const DataManagementPage: React.FC<{
     const newDefense = { ...defenseForm, id: Date.now(), facultyId: Number(defenseForm.facultyId), departmentId: Number(defenseForm.departmentId) };
     setThesisDefenses(p => [...p, newDefense]);
     setDefenseForm({
-      lastName: '', firstName: '', patronymic: '', facultyId: '' as any, departmentId: '' as any, specialty: specialties[0],
-      type: 'PhD', fieldOfScience: fieldsOfScience[0], thesisTopic: '', supervisor: '', defenseOrganization: '',
+      lastName: '', firstName: '', patronymic: '', facultyId: '' as any, departmentId: '' as any, specialty: '',
+      type: 'PhD', fieldOfScience: '', thesisTopic: '', rushnay: '',
       councilNumber: '', defenseDate: ''
     });
   };
@@ -2070,15 +2128,13 @@ const DataManagementPage: React.FC<{
                 <select name="departmentId" value={defenseForm.departmentId} onChange={handleDefenseFormChange} className={`w-full p-2 bg-white border rounded ${defenseErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} disabled={!defenseForm.facultyId}><option value="" disabled>Kafedrani tanlang</option>{filteredDeptsForDefenseForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
                 {defenseErrors.departmentId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.departmentId}</p>}
               </div>
-              <select name="specialty" value={defenseForm.specialty} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{specialties.map(s => <option key={s} value={s}>{s}</option>)}</select>
+              <input type="text" name="specialty" placeholder="Ixtisoslash" value={defenseForm.specialty} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <select name="type" value={defenseForm.type} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
-              <select name="fieldOfScience" value={defenseForm.fieldOfScience} onChange={handleDefenseFormChange} className="w-full p-2 bg-white border border-gray-300 rounded">{fieldsOfScience.map(f => <option key={f} value={f}>{f}</option>)}</select>
+              <input type="text" name="fieldOfScience" placeholder="Fani" value={defenseForm.fieldOfScience} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <div>
                 <input type="text" name="thesisTopic" placeholder="Dissertatsiya mavzusi" value={defenseForm.thesisTopic} onChange={handleDefenseFormChange} className={`w-full p-2 border rounded ${defenseErrors.thesisTopic ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
                 {defenseErrors.thesisTopic && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{defenseErrors.thesisTopic}</p>}
               </div>
-              <input type="text" name="supervisor" placeholder="Ilmiy rahbar" value={defenseForm.supervisor} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
-              <input type="text" name="defenseOrganization" placeholder="Himoya qilgan tashkilot" value={defenseForm.defenseOrganization} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <input type="text" name="councilNumber" placeholder="Kengash raqami" value={defenseForm.councilNumber} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <input type="date" name="defenseDate" value={defenseForm.defenseDate} onChange={handleDefenseFormChange} className="w-full p-2 border border-gray-300 rounded" />
               <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
@@ -2115,13 +2171,11 @@ const DataManagementPage: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <select name="facultyId" value={editDefenseForm.facultyId} onChange={handleEditDefenseFormChange} className="w-full p-2 bg-white border rounded" required><option value="" disabled>Fakultet</option>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
                 <select name="departmentId" value={editDefenseForm.departmentId} onChange={handleEditDefenseFormChange} className="w-full p-2 bg-white border rounded" required disabled={!editDefenseForm.facultyId}><option value="" disabled>Kafedra</option>{filteredDeptsForEditDefenseForm.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select>
-                <select name="specialty" value={editDefenseForm.specialty} onChange={handleEditDefenseFormChange} className="w-full p-2 bg-white border rounded">{specialties.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                <input type="text" name="specialty" placeholder="Ixtisoslash" value={editDefenseForm.specialty} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
                 <select name="type" value={editDefenseForm.type} onChange={handleEditDefenseFormChange} className="w-full p-2 bg-white border rounded">{defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
               </div>
-              <select name="fieldOfScience" value={editDefenseForm.fieldOfScience} onChange={handleEditDefenseFormChange} className="w-full p-2 bg-white border rounded">{fieldsOfScience.map(f => <option key={f} value={f}>{f}</option>)}</select>
+              <input type="text" name="fieldOfScience" placeholder="Fani" value={editDefenseForm.fieldOfScience} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
               <input type="text" name="thesisTopic" placeholder="Dissertatsiya mavzusi" value={editDefenseForm.thesisTopic} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" required />
-              <input type="text" name="supervisor" placeholder="Ilmiy rahbar" value={editDefenseForm.supervisor} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
-              <input type="text" name="defenseOrganization" placeholder="Himoya qilgan tashkilot" value={editDefenseForm.defenseOrganization} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
               <input type="text" name="councilNumber" placeholder="Kengash raqami" value={editDefenseForm.councilNumber} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
               <input type="date" name="defenseDate" value={editDefenseForm.defenseDate} onChange={handleEditDefenseFormChange} className="w-full p-2 border rounded" />
               <div className="flex justify-end mt-4 pt-4 border-t"><button type="button" onClick={() => setEditDefenseModal({ open: false, defense: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button type="submit" className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
@@ -2374,7 +2428,11 @@ const PerformanceMonitoringPage: React.FC<{
     return 'bg-red-100 text-red-800';
   };
 
-  const handleExport = () => {
+  const handleExportMonitoring = () => {
+    if (user.role !== 'admin') {
+      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      return;
+    }
     const dataToExport = dataForTab.map((p) => ({
       'Nomi': p.name,
       'Yillik Reja': p.annualPlan,
@@ -2403,8 +2461,12 @@ const PerformanceMonitoringPage: React.FC<{
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Ishlash Monitoringi ({selectedYear})</h1>
-        {isSuperAdmin && (
-          <button onClick={handleExport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+        {user && isSuperAdmin && (
+          <button
+            type="button"
+            onClick={handleExportMonitoring}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+          >
             <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
           </button>
         )}
@@ -2645,7 +2707,11 @@ const ScientificPotentialPage: React.FC<{
     setCurrentPage(1);
   }, [searchQuery, filters, activeTab]);
 
-  const handleExport = () => {
+  const handleExportAcademics = () => {
+    if (user.role !== 'admin') {
+      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      return;
+    }
     const dataToExport = filteredAcademics.map((prof, index) => ({
       '№': (currentPage - 1) * pageSize + index + 1,
       'F.I.Sh.': getProfessorName(prof),
@@ -2704,8 +2770,12 @@ const ScientificPotentialPage: React.FC<{
           )}
         </AnimatePresence>
         <div className="flex justify-end mb-4">
-          {isSuperAdmin && (
-            <button onClick={handleExport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+          {user && isSuperAdmin && (
+            <button
+              type="button"
+              onClick={handleExportAcademics}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+            >
               <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
             </button>
           )}
@@ -2782,59 +2852,108 @@ const ScientificPotentialPage: React.FC<{
 
       return searchMatch && facultyMatch && departmentMatch && specialtyMatch && typeMatch;
     });
+
+    const sortedDefenses = [...filteredDefenses].sort((a, b) => {
+      const nameA = getProfessorName(a).toLowerCase();
+      const nameB = getProfessorName(b).toLowerCase();
+      return nameA.localeCompare(nameB, 'uz');
+    });
+
+    const handleExportDefenses = () => {
+      if (user.role !== 'admin') {
+        alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+        return;
+      }
+      const dataToExport = sortedDefenses.map((d, index) => {
+        const dept = departments.find(dep => dep.id === d.departmentId);
+        const faculty = faculties.find(f => f.id === d.facultyId);
+        return {
+          '№': index + 1,
+          'F.I.Sh.': getProfessorName(d),
+          'Turi': d.type,
+          'Mavzu': d.thesisTopic,
+          'Ilmiy rahbar': d.supervisor,
+          'Fakultet': faculty?.name || 'N/A',
+          'Kafedra': dept?.name || 'N/A',
+          'Himoya sanasi': d.defenseDate,
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport, {
+        header: ['№', 'F.I.Sh.', 'Turi', 'Mavzu', 'Ilmiy rahbar', 'Fakultet', 'Kafedra', 'Himoya sanasi'],
+      });
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Himoyalar');
+      const today = new Date().toISOString().slice(0, 10);
+      XLSX.writeFile(wb, `Dissertatsiya_himoyalari_${today}.xlsx`);
+    };
+
     return (
       <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
             <div className="md:col-span-2 lg:col-span-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                        type="text"
-                        placeholder="F.I.Sh. yoki mavzu bo'yicha qidiruv..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                    />
-                </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="F.I.Sh. yoki mavzu bo'yicha qidiruv..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-300 rounded-lg pl-10 pr-4 py-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
             </div>
             <select name="facultyId" value={defenseFilters.facultyId} onChange={handleDefenseFilterChange} className="w-full p-2 bg-white border rounded text-sm">
-                <option value="">Barcha fakultetlar</option>
-                {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              <option value="">Barcha fakultetlar</option>
+              {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
             <select name="departmentId" value={defenseFilters.departmentId} onChange={handleDefenseFilterChange} className="w-full p-2 bg-white border rounded text-sm" disabled={!defenseFilters.facultyId}>
-                <option value="">Barcha kafedralar</option>
-                {filteredDepartmentsForFilter.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+              <option value="">Barcha kafedralar</option>
+              {filteredDepartmentsForFilter.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
             </select>
             <select name="specialty" value={defenseFilters.specialty} onChange={handleDefenseFilterChange} className="w-full p-2 bg-white border rounded text-sm">
-                <option value="">Barcha ixtisosliklar</option>
-                {specialties.map(s => <option key={s} value={s}>{s}</option>)}
+              <option value="">Barcha ixtisosliklar</option>
+              {specialties.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
             <select name="type" value={defenseFilters.type} onChange={handleDefenseFilterChange} className="w-full p-2 bg-white border rounded text-sm">
-                <option value="">Barcha turlar</option>
-                {defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              <option value="">Barcha turlar</option>
+              {defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
+          </div>
+          {user && (
+            <button
+              type="button"
+              onClick={handleExportDefenses}
+              className="inline-flex items-center justify-center rounded-md border border-transparent bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+            >
+              <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
               <tr>
+                <th className="px-4 py-3">№</th>
                 <th className="px-4 py-3">F.I.Sh.</th>
                 <th className="px-4 py-3">Turi</th>
                 <th className="px-4 py-3">Mavzu</th>
-                <th className="px-4 py-3">Ilmiy rahbar</th>
+                <th className="px-4 py-3">Rushnay</th>
                 <th className="px-4 py-3">Kafedra</th>
                 <th className="px-4 py-3">Himoya sanasi</th>
               </tr>
             </thead>
             <tbody>
-              {filteredDefenses.map(d => {
+              {sortedDefenses.map((d, index) => {
                 const dept = departments.find(dep => dep.id === d.departmentId);
                 return (
                   <tr key={d.id} className="bg-white border-b hover:bg-gray-50">
-                    <th className="px-4 py-2 font-medium text-gray-900">{getProfessorName(d)}</th>
+                    <td className="px-4 py-2 font-medium text-gray-700">{index + 1}</td>
+                    <th className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">{getProfessorName(d)}</th>
                     <td className="px-4 py-2">{d.type}</td>
                     <td className="px-4 py-2">{d.thesisTopic}</td>
-                    <td className="px-4 py-2">{d.supervisor}</td>
+                    <td className="px-4 py-2">{d.rushnay}</td>
                     <td className="px-4 py-2">{dept?.name || 'N/A'}</td>
                     <td className="px-4 py-2">{d.defenseDate}</td>
                   </tr>
@@ -3395,7 +3514,11 @@ const KPIPage: React.FC<{
     return facultyRatings.find(f => f.id === selectedProfessor.faculty.id);
   }, [selectedProfessor, facultyRatings]);
 
-  const handleExport = () => {
+  const handleExportKPI = () => {
+    if (user.role !== 'admin') {
+      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      return;
+    }
     const dataToExport = filteredProfessors.map((prof, index) => ({
       '№': index + 1,
       'F.I.Sh.': prof.name,
@@ -3417,8 +3540,12 @@ const KPIPage: React.FC<{
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Professor-o'qituvchilarning KPI ko'rsatkichlari</h1>
-        {isSuperAdmin && (
-          <button onClick={handleExport} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+        {user && isSuperAdmin && (
+          <button
+            type="button"
+            onClick={handleExportKPI}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+          >
             <FileSpreadsheet size={16} className="mr-2" /> Excelga yuklash
           </button>
         )}
