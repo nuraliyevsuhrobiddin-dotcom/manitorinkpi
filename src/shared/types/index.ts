@@ -78,6 +78,8 @@ export interface ThesisDefense {
   fieldOfScience: string;
   thesisTopic: string;
   rushnay: string;
+  supervisor?: string;
+  defenseOrganization?: string;
   councilNumber: string;
   defenseDate: string;
 }

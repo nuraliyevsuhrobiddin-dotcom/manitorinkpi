@@ -214,6 +214,7 @@ const toThesisDefense = (row: Record<string, unknown>): ThesisDefense => ({
   defenseOrganization: normalizeString(row.defense_organization ?? row.defenseOrganization),
   councilNumber: normalizeString(row.council_number ?? row.councilNumber),
   defenseDate: normalizeString(row.defense_date ?? row.defenseDate),
+  rushnay: normalizeString(row.rushnay),
 });
 
 class LocalDataRepository {

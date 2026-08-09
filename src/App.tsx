@@ -250,7 +250,8 @@ const EnhancedCriteriaStatistics: React.FC<{
   scoringSystem: ScoringSystem;
   selectedYear: number;
   plans: Plan[];
-}> = ({ achievements, professors, faculties, departments, scoringSystem, selectedYear, plans }) => {
+  user?: User;
+}> = ({ achievements, professors, faculties, departments, scoringSystem, selectedYear, plans, user }) => {
   const [section, setSection] = useState<'general' | 'faculty' | 'department'>('general');
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | ''>('');
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | ''>('');
@@ -356,7 +357,7 @@ const EnhancedCriteriaStatistics: React.FC<{
   };
 
   const handleExportCriteria = () => {
-    if (user.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
@@ -433,7 +434,7 @@ const EnhancedCriteriaStatistics: React.FC<{
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-[0.2em]">Mezonlar bo‘yicha tahlil</p>
           <h3 className="text-lg font-semibold text-gray-800">{selectedYear}-yil</h3>
         </div>
-        {user && (
+        {user && user.role === 'admin' && (
           <button
             type="button"
             onClick={handleExportCriteria}
@@ -1070,7 +1071,7 @@ const ProfessorFilterControls: React.FC<{ filters: Filters, onFilterChange: (fil
   );
 };
 
-const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void, saveStatus: 'idle' | 'saving' | 'saved' | 'error', saveErrorMessage: string }> = ({ data, achievements, setAchievements, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters, saveStatus, saveErrorMessage }) => {
+const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements: Achievement[], setAchievements: any, professors: Professor[], setProfessors: any, plans: Plan[], setPlans: any, selectedYear: number, canEdit: boolean, scoringSystem: ScoringSystem, getScore: (type: string, subType: string) => number, faculties: Faculty[], departments: Department[], positions: string[], employmentTypes: string[], searchQuery: string, setSearchQuery: (s: string) => void, filters: Filters, setFilters: (f: Filters) => void, saveStatus: 'idle' | 'saving' | 'saved' | 'error', saveErrorMessage: string }> = ({ user, data, achievements, setAchievements, setProfessors, plans, setPlans, selectedYear, canEdit, scoringSystem, getScore, faculties, departments, positions, employmentTypes, searchQuery, setSearchQuery, filters, setFilters, saveStatus, saveErrorMessage }) => {
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -1494,7 +1495,7 @@ const DataManagementPage: React.FC<{
   specialties: string[];
   fieldsOfScience: string[];
   defenseTypes: string[];
-}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, setAchievements, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, specialties, fieldsOfScience, defenseTypes }) => {
+}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, setAchievements, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, defenseTypes }) => {
 
   const tabs = [
     { id: 'faculties', label: 'Fakultetlar', icon: Building },
@@ -2328,6 +2329,7 @@ const DataManagementPage: React.FC<{
 };
 
 const PerformanceMonitoringPage: React.FC<{
+  user: User;
   professors: Professor[];
   achievements: Achievement[];
   plans: Plan[];
@@ -2337,7 +2339,7 @@ const PerformanceMonitoringPage: React.FC<{
   departments: Department[];
   searchQuery: string;
   isSuperAdmin: boolean;
-}> = ({ professors, achievements, plans, getScore, selectedYear, faculties, departments, searchQuery, isSuperAdmin }) => {
+}> = ({ user, professors, achievements, plans, getScore, selectedYear, faculties, departments, searchQuery, isSuperAdmin }) => {
   const [expandedId, setExpandedId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState('professors');
   const [currentPage, setCurrentPage] = useState(1);
@@ -2560,6 +2562,7 @@ const PerformanceMonitoringPage: React.FC<{
 };
 
 const ScientificPotentialPage: React.FC<{
+  user: User;
   facultyRatings: any[];
   departmentRatings: any[];
   professorsWithDetails: any[];
@@ -2574,7 +2577,7 @@ const ScientificPotentialPage: React.FC<{
   isSuperAdmin: boolean;
   specialties: string[];
   defenseTypes: string[];
-}> = ({ facultyRatings, departmentRatings, professorsWithDetails, thesisDefenses, faculties, departments, positions, searchQuery, setSearchQuery, filters, setFilters, isSuperAdmin, specialties, defenseTypes }) => {
+}> = ({ user, facultyRatings, departmentRatings, professorsWithDetails, thesisDefenses, faculties, departments, positions, searchQuery, setSearchQuery, filters, setFilters, isSuperAdmin, specialties, defenseTypes }) => {
   const [activeTab, setActiveTab] = useState('faculties');
   const [expandedDept, setExpandedDept] = useState<number | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -3438,6 +3441,7 @@ const ProfessorKPIDetailModal: React.FC<{
 };
 
 const KPIPage: React.FC<{
+  user: User;
   professorsWithDetails: any[];
   departmentRatings: any[];
   facultyRatings: any[];
@@ -3448,7 +3452,7 @@ const KPIPage: React.FC<{
   faculties: Faculty[];
   departments: Department[];
   isSuperAdmin: boolean;
-}> = ({ professorsWithDetails, departmentRatings, facultyRatings, achievements, getScore, selectedYear, scoringSystem, faculties, departments, isSuperAdmin }) => {
+}> = ({ user, professorsWithDetails, departmentRatings, facultyRatings, achievements, getScore, selectedYear, scoringSystem, faculties, departments, isSuperAdmin }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
@@ -4277,6 +4281,7 @@ function App() {
         return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={canManageProfessors} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} saveStatus={saveStatus} saveErrorMessage={saveErrorMessage} />;
       case 'kpi':
         return <KPIPage
+                  user={user}
                   isSuperAdmin={isSuperAdmin}
                   professorsWithDetails={processedData.professorsWithDetails}
                   departmentRatings={processedData.departmentRatings}
@@ -4289,7 +4294,7 @@ function App() {
                   departments={departments}
                 />;
       case 'potential':
-        return <ScientificPotentialPage isSuperAdmin={isSuperAdmin} facultyRatings={processedData.facultyRatings} departmentRatings={processedData.departmentRatings} professorsWithDetails={processedData.professorsWithDetails} thesisDefenses={thesisDefenses} faculties={faculties} departments={departments} positions={positions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} specialties={CONSTANTS.SPECIALTIES} defenseTypes={CONSTANTS.DEFENSE_TYPES} />;
+        return <ScientificPotentialPage user={user} isSuperAdmin={isSuperAdmin} facultyRatings={processedData.facultyRatings} departmentRatings={processedData.departmentRatings} professorsWithDetails={processedData.professorsWithDetails} thesisDefenses={thesisDefenses} faculties={faculties} departments={departments} positions={positions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} specialties={CONSTANTS.SPECIALTIES} defenseTypes={CONSTANTS.DEFENSE_TYPES} />;
       case 'projects':
         return <ScientificProjectsPage
                   projects={projects}
@@ -4304,6 +4309,7 @@ function App() {
                 />;
       case 'performance':
         return <PerformanceMonitoringPage 
+                  user={user}
                   isSuperAdmin={isSuperAdmin}
                   professors={processedData.allProfessors}
                   achievements={achievements}
