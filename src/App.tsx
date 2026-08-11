@@ -357,7 +357,7 @@ const EnhancedCriteriaStatistics: React.FC<{
   };
 
   const handleExportCriteria = () => {
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== 'superadmin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
@@ -434,7 +434,7 @@ const EnhancedCriteriaStatistics: React.FC<{
           <p className="text-sm font-semibold text-gray-500 uppercase tracking-[0.2em]">Mezonlar bo‘yicha tahlil</p>
           <h3 className="text-lg font-semibold text-gray-800">{selectedYear}-yil</h3>
         </div>
-        {user && user.role === 'admin' && (
+        {user && user.role === 'superadmin' && (
           <button
             type="button"
             onClick={handleExportCriteria}
@@ -1214,7 +1214,7 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
   }
 
   const handleExport = () => {
-    if (user.role !== 'admin') {
+    if (user.role !== 'superadmin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
@@ -2431,7 +2431,7 @@ const PerformanceMonitoringPage: React.FC<{
   };
 
   const handleExportMonitoring = () => {
-    if (user.role !== 'admin') {
+    if (user.role !== 'superadmin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
@@ -2711,7 +2711,7 @@ const ScientificPotentialPage: React.FC<{
   }, [searchQuery, filters, activeTab]);
 
   const handleExportAcademics = () => {
-    if (user.role !== 'admin') {
+    if (user.role !== 'superadmin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
@@ -2863,7 +2863,7 @@ const ScientificPotentialPage: React.FC<{
     });
 
     const handleExportDefenses = () => {
-      if (user.role !== 'admin') {
+      if (user.role !== 'superadmin') {
         alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
         return;
       }
@@ -2924,7 +2924,7 @@ const ScientificPotentialPage: React.FC<{
               {defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          {user && (
+          {user && isSuperAdmin && (
             <button
               type="button"
               onClick={handleExportDefenses}
@@ -3519,7 +3519,7 @@ const KPIPage: React.FC<{
   }, [selectedProfessor, facultyRatings]);
 
   const handleExportKPI = () => {
-    if (user.role !== 'admin') {
+    if (user.role !== 'superadmin') {
       alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
       return;
     }
