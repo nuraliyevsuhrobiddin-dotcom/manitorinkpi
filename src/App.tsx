@@ -12,19 +12,36 @@ import {
   LayoutDashboard, BarChart3, Building, Users, GraduationCap, ChevronDown, ChevronRight,
   BookOpen, Award, FileText, Lightbulb, Briefcase, Languages, Trophy, UserCheck, Star, Filter,
   Settings, PlusCircle, Edit, Trash2, Eye, TrendingUp, FileSpreadsheet, Edit3, LogIn, Search, TrendingDown, UserCog, ClipboardList, ChevronUp, UserPlus,
-  Rocket, Target, Handshake, BookCopy, DollarSign
+  Rocket, Target, Handshake, BookCopy, DollarSign, CheckCircle2, XCircle, Clock
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 // Ma'lumotlar tiplari
 type User = typeof CONSTANTS.USERS[0] & { departmentId?: number };
 type Professor = typeof CONSTANTS.PROFESSORS[0];
-type Achievement = typeof CONSTANTS.ACHIEVEMENTS[0];
+// Approval status tipi
+type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+// Achievement tipini kengaytirish — status + submitter + rejection
+type Achievement = typeof CONSTANTS.ACHIEVEMENTS[0] & {
+  status?: ApprovalStatus;
+  submittedBy?: number;   // user.id
+  submittedAt?: string;   // ISO string
+  rejectionNote?: string;
+};
+type PlanItem = { type: string; subType: string; count: number };
+type Plan = {
+  id?: number;
+  professorId: number;
+  year: number;
+  planItems: PlanItem[];
+  status?: ApprovalStatus;
+  submittedBy?: number;
+  submittedAt?: string;
+  rejectionNote?: string;
+};
 type Department = typeof CONSTANTS.DEPARTMENTS[0];
 type Faculty = typeof CONSTANTS.FACULTIES[0];
 type Division = { id: number, name: string };
-type PlanItem = { type: string, subType: string, count: number };
-type Plan = { id?: number, professorId: number, year: number, planItems: PlanItem[] };
 type Project = typeof CONSTANTS.PROJECTS[0];
 type ScoringSystem = typeof CONSTANTS.SCORING_SYSTEM;
 type ScoringCriterion = { score: number; description: string };
@@ -87,44 +104,56 @@ const formatFundingTooltip = (valueInMillions: number) => {
 
 // Asosiy komponentlar
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
-  <div className={`bg-white rounded-xl shadow-sm p-6 ${className}`}>
+  <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm p-6 transition-all duration-300 ${className}`}>
     {children}
   </div>
 );
 
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ElementType }> = ({ title, value, icon: Icon }) => (
-  <Card className="flex items-center">
-    <div className="p-3 bg-blue-100 text-blue-600 rounded-lg mr-4">
-      <Icon size={24} />
+const StatCard: React.FC<{ title: string; value: string | number; icon: React.ElementType; color?: 'indigo' | 'emerald' | 'amber' | 'rose' | 'violet' | 'cyan' }> = ({ title, value, icon: Icon, color = 'indigo' }) => {
+  const colorMap: Record<string, { bg: string; icon: string; ring: string; glow: string }> = {
+    indigo: { bg: 'from-indigo-500 to-violet-600', icon: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400', ring: 'ring-indigo-500/20', glow: 'shadow-indigo-500/10' },
+    emerald: { bg: 'from-emerald-500 to-teal-600', icon: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400', ring: 'ring-emerald-500/20', glow: 'shadow-emerald-500/10' },
+    amber: { bg: 'from-amber-500 to-orange-500', icon: 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400', ring: 'ring-amber-500/20', glow: 'shadow-amber-500/10' },
+    rose: { bg: 'from-rose-500 to-pink-600', icon: 'text-rose-600 bg-rose-50 dark:bg-rose-900/30 dark:text-rose-400', ring: 'ring-rose-500/20', glow: 'shadow-rose-500/10' },
+    violet: { bg: 'from-violet-500 to-purple-600', icon: 'text-violet-600 bg-violet-50 dark:bg-violet-900/30 dark:text-violet-400', ring: 'ring-violet-500/20', glow: 'shadow-violet-500/10' },
+    cyan: { bg: 'from-cyan-500 to-blue-600', icon: 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-400', ring: 'ring-cyan-500/20', glow: 'shadow-cyan-500/10' },
+  };
+  const c = colorMap[color];
+  return (
+    <div className={`group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-md ${c.glow} hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 p-5 flex items-center gap-4 ring-1 ${c.ring}`}>
+      <div className={`p-3.5 rounded-xl ${c.icon} shadow-sm flex-shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+        <Icon size={22} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5">{title}</p>
+        <p className="text-2xl font-extrabold text-slate-900 dark:text-white leading-none tracking-tight">{value}</p>
+      </div>
     </div>
-    <div>
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className="text-2xl font-bold text-gray-800">{value}</p>
-    </div>
-  </Card>
-);
+  );
+};
 
 const BarChart: React.FC<{ data: { label: string; value: number }[]; title: string; unit?: string }> = ({ data, title, unit = '' }) => {
   const maxValue = Math.max(...data.map(d => d.value), 1);
+  const gradients = ['from-indigo-500 to-violet-500','from-blue-500 to-cyan-500','from-emerald-500 to-teal-500','from-amber-500 to-orange-500','from-rose-500 to-pink-500','from-purple-500 to-fuchsia-500'];
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
-      <div className="space-y-2">
+      <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-5">{title}</h3>
+      <div className="space-y-3.5">
         {data.map((item, index) => (
           <div key={index} className="group">
-            <div className="flex justify-between items-center mb-1">
-              <div className="flex items-center">
-                <span className="text-sm font-semibold text-gray-500 w-8">{index + 1}.</span>
-                <p className="text-sm text-gray-600 truncate pr-2">{item.label}</p>
+            <div className="flex justify-between items-center mb-1.5">
+              <div className="flex items-center space-x-2">
+                <span className="text-xs font-bold text-slate-400 w-5 text-right">{index + 1}</span>
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate pr-2">{item.label}</p>
               </div>
-              <p className="text-sm font-semibold text-blue-600">{item.value.toFixed(2)}{unit}</p>
+              <p className="text-sm font-bold text-indigo-600 dark:text-indigo-400 tabular-nums">{item.value.toFixed(2)}{unit}</p>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
               <motion.div
-                className="bg-blue-500 h-2.5 rounded-full"
+                className={`bg-gradient-to-r ${gradients[index % gradients.length]} h-2 rounded-full`}
                 initial={{ width: 0 }}
                 animate={{ width: `${(item.value / maxValue) * 100}%` }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                transition={{ duration: 0.6, ease: 'easeOut', delay: index * 0.05 }}
               />
             </div>
           </div>
@@ -185,10 +214,17 @@ const DonutChart: React.FC<{ data: { label: string; value: number; color: string
 const Modal: React.FC<{ open: boolean, onClose: () => void, children: React.ReactNode, className?: string }> = ({ open, onClose, children, className }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className={`bg-white rounded-lg shadow-lg p-6 min-w-[320px] max-w-full relative ${className}`}>
-        <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={onClose}>
-          <svg width="24" height="24"><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" strokeWidth="2"/><line x1="6" y1="18" x2="18" y2="6" stroke="currentColor" strokeWidth="2"/></svg>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
+      {/* Modal Content */}
+      <div className={`relative bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 p-6 w-full sm:max-w-lg max-h-[90vh] overflow-y-auto z-10 ${className}`}>
+        <button
+          className="absolute top-4 right-4 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          onClick={onClose}
+          aria-label="Yopish"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>
         </button>
         {children}
       </div>
@@ -198,44 +234,33 @@ const Modal: React.FC<{ open: boolean, onClose: () => void, children: React.Reac
 
 const Pagination: React.FC<{ currentPage: number; totalPages: number; onPageChange: (page: number) => void; }> = ({ currentPage, totalPages, onPageChange }) => {
   if (totalPages <= 1) return null;
-
   const pageNumbers = [];
-  for (let i = 1; i <= totalPages; i++) {
-    pageNumbers.push(i);
-  }
-
+  for (let i = 1; i <= totalPages; i++) pageNumbers.push(i);
   return (
-    <nav className="flex justify-center mt-4">
-      <ul className="inline-flex items-center -space-x-px">
-        <li>
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-            className="px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-          >
-            Oldingi
-          </button>
-        </li>
+    <nav className="flex justify-center mt-6">
+      <div className="inline-flex items-center gap-1 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-1.5">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="px-3.5 py-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        >‹ Oldingi</button>
         {pageNumbers.map(number => (
-          <li key={number}>
-            <button
-              onClick={() => onPageChange(number)}
-              className={`px-3 py-2 leading-tight border ${currentPage === number ? 'bg-blue-50 text-blue-600 border-blue-300' : 'text-gray-500 bg-white border-gray-300 hover:bg-gray-100'}`}
-            >
-              {number}
-            </button>
-          </li>
-        ))}
-        <li>
           <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-            className="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-          >
-            Keyingi
-          </button>
-        </li>
-      </ul>
+            key={number}
+            onClick={() => onPageChange(number)}
+            className={`min-w-[36px] h-9 text-sm font-semibold rounded-lg transition-all duration-150 ${
+              currentPage === number
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm'
+            }`}
+          >{number}</button>
+        ))}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className="px-3.5 py-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 rounded-lg hover:bg-white dark:hover:bg-slate-700 hover:shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-150"
+        >Keyingi ›</button>
+      </div>
     </nav>
   );
 };
@@ -795,7 +820,9 @@ const ProfessorEvaluationModal: React.FC<{
   year: number;
   scoringSystem: ScoringSystem;
   getScore: (type: string, subType: string) => number;
-}> = ({ open, onClose, professor, achievements, onSave, year, scoringSystem, getScore }) => {
+  isAdminMode?: boolean;
+  submittedBy?: number;
+}> = ({ open, onClose, professor, achievements, onSave, year, scoringSystem, getScore, isAdminMode = false, submittedBy }) => {
   const [quarter, setQuarter] = useState(1);
   
   const profAchievementsForQuarter = useMemo(() => {
@@ -835,8 +862,15 @@ const ProfessorEvaluationModal: React.FC<{
     });
   }
 
-  function handleSave() {
-    const filtered = localAchievements.filter(a => a.count > 0);
+  function handleSave(asPending = false) {
+    const status: ApprovalStatus = asPending ? 'pending' : 'approved';
+    const filtered = localAchievements.filter(a => a.count > 0).map(a => ({
+      ...a,
+      status,
+      submittedBy: asPending ? submittedBy : undefined,
+      submittedAt: asPending ? new Date().toISOString() : undefined,
+      rejectionNote: undefined,
+    }));
     onSave(filtered, { year, quarter });
     onClose();
   }
@@ -890,7 +924,13 @@ const ProfessorEvaluationModal: React.FC<{
       </div>
       <div className="mt-4 flex justify-end space-x-2">
         <button className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300" onClick={onClose}>Bekor qilish</button>
-        <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={handleSave}>Saqlash</button>
+        {isAdminMode ? (
+          <button className="px-5 py-2 rounded bg-amber-500 text-white hover:bg-amber-600 font-semibold" onClick={() => handleSave(true)}>
+            📤 Tasdiqlashga yuborish
+          </button>
+        ) : (
+          <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleSave(false)}>Saqlash</button>
+        )}
       </div>
     </Modal>
   );
@@ -905,7 +945,9 @@ const ProfessorPlanModal: React.FC<{
   year: number;
   scoringSystem: ScoringSystem;
   getScore: (type: string, subType: string) => number;
-}> = ({ open, onClose, professor, plans, onSave, year, scoringSystem, getScore }) => {
+  isAdminMode?: boolean;
+  submittedBy?: number;
+}> = ({ open, onClose, professor, plans, onSave, year, scoringSystem, getScore, isAdminMode = false, submittedBy }) => {
   
   const profPlan = useMemo(() => {
     return plans.find(p => p.professorId === professor.id && p.year === year);
@@ -944,13 +986,17 @@ const ProfessorPlanModal: React.FC<{
     });
   }
 
-  function handleSave() {
+  function handleSave(asPending = false) {
     const filteredItems = localPlanItems.filter(p => p.count > 0);
     const updatedPlan: Plan = {
       id: profPlan?.id || Math.floor(Date.now() + Math.random() * 1000),
       professorId: professor.id,
       year: year,
-      planItems: filteredItems
+      planItems: filteredItems,
+      status: asPending ? 'pending' : 'approved',
+      submittedBy: asPending ? submittedBy : undefined,
+      submittedAt: asPending ? new Date().toISOString() : undefined,
+      rejectionNote: undefined,
     };
     onSave(updatedPlan);
     onClose();
@@ -996,7 +1042,13 @@ const ProfessorPlanModal: React.FC<{
       </div>
       <div className="mt-4 flex justify-end space-x-2">
         <button className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300" onClick={onClose}>Bekor qilish</button>
-        <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={handleSave}>Saqlash</button>
+        {isAdminMode ? (
+          <button className="px-5 py-2 rounded bg-amber-500 text-white hover:bg-amber-600 font-semibold" onClick={() => handleSave(true)}>
+            📤 Tasdiqlashga yuborish
+          </button>
+        ) : (
+          <button className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700" onClick={() => handleSave(false)}>Saqlash</button>
+        )}
       </div>
     </Modal>
   );
@@ -1387,12 +1439,16 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
                       <button className="inline-flex items-center text-blue-600 hover:text-blue-800 mr-2" title="Baholash" onClick={() => { setActiveProfessor(prof); setEvalModalOpen(true); }}>
                         <Eye size={18} />
                       </button>
-                      <button className="inline-flex items-center text-green-600 hover:text-green-800 mr-2" title="Tahrirlash" onClick={() => openEditModal(prof)}>
-                        <Edit size={18} />
-                      </button>
-                      <button className="inline-flex items-center text-red-600 hover:text-red-800" title="O'chirish" onClick={() => { setActiveProfessor(prof); setDeleteModalOpen(true); }}>
-                        <Trash2 size={18} />
-                      </button>
+                      {user?.role === 'superadmin' && (
+                        <>
+                          <button className="inline-flex items-center text-green-600 hover:text-green-800 mr-2" title="Tahrirlash" onClick={() => openEditModal(prof)}>
+                            <Edit size={18} />
+                          </button>
+                          <button className="inline-flex items-center text-red-600 hover:text-red-800" title="O'chirish" onClick={() => { setActiveProfessor(prof); setDeleteModalOpen(true); }}>
+                            <Trash2 size={18} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -1414,6 +1470,8 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
             year={selectedYear}
             scoringSystem={scoringSystem}
             getScore={getScore}
+            isAdminMode={user?.role === 'admin'}
+            submittedBy={user?.id}
           />
           <ProfessorEvaluationModal
             open={evalModalOpen}
@@ -1424,6 +1482,8 @@ const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achievements:
             year={selectedYear}
             scoringSystem={scoringSystem}
             getScore={getScore}
+            isAdminMode={user?.role === 'admin'}
+            submittedBy={user?.id}
           />
           <Modal open={editModalOpen} onClose={() => setEditModalOpen(false)} className="max-w-4xl">
             <h2 className="text-lg font-bold mb-2">Professorni tahrirlash</h2>
@@ -1495,7 +1555,7 @@ const DataManagementPage: React.FC<{
   specialties: string[];
   fieldsOfScience: string[];
   defenseTypes: string[];
-}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, setAchievements, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, defenseTypes }) => {
+}> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, achievements, setAchievements, plans, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, defenseTypes }) => {
 
   const tabs = [
     { id: 'faculties', label: 'Fakultetlar', icon: Building },
@@ -1507,6 +1567,7 @@ const DataManagementPage: React.FC<{
     { id: 'defenses', label: 'Dissertatsiya himoyalari', icon: Award },
     { id: 'criteria', label: 'Mezonlar', icon: ClipboardList },
     { id: 'users', label: 'Foydalanuvchilar', icon: UserCog },
+    { id: 'approvals', label: 'Tasdiqlash', icon: CheckCircle2 },
   ];
 
   const [activeTab, setActiveTab] = useState(tabs[0]?.id || '');
@@ -1532,7 +1593,7 @@ const DataManagementPage: React.FC<{
     councilNumber: '', defenseDate: ''
   });
   const [criterionForm, setCriterionForm] = useState({ type: '', subType: '', score: '', description: '' });
-  const [userForm, setUserForm] = useState({ username: '', role: 'guest' });
+  const [userForm, setUserForm] = useState({ username: '', fullName: '', email: '', password: '', role: 'admin', departmentId: '' });
 
   // Form validation errors
   const [facultyErrors, setFacultyErrors] = useState<{ name?: string }>({});
@@ -1543,7 +1604,7 @@ const DataManagementPage: React.FC<{
   const [projErrors, setProjErrors] = useState<{ name?: string; leaderName?: string; facultyId?: string; departmentId?: string; totalFunding?: string }>({});
   const [defenseErrors, setDefenseErrors] = useState<{ lastName?: string; firstName?: string; facultyId?: string; departmentId?: string; thesisTopic?: string }>({});
   const [criterionErrors, setCriterionErrors] = useState<{ type?: string; subType?: string; score?: string }>({});
-  const [userErrors, setUserErrors] = useState<{ username?: string }>({});
+  const [userErrors, setUserErrors] = useState<{ username?: string; email?: string; password?: string; departmentId?: string }>({});
 
   // Edit/Delete modals
   const [editFacultyModal, setEditFacultyModal] = useState<{ open: boolean, faculty: any }>({ open: false, faculty: null });
@@ -1575,7 +1636,7 @@ const DataManagementPage: React.FC<{
   const [deleteCriterionModal, setDeleteCriterionModal] = useState<{ open: boolean, type: string, subType: string }>({ open: false, type: '', subType: '' });
   const [editCriterionTypeModal, setEditCriterionTypeModal] = useState<{ open: boolean, oldType: string, newType: string }>({ open: false, oldType: '', newType: '' });
 
-  const [editUserModal, setEditUserModal] = useState<{ open: boolean, user: any }>({ open: false, user: null });
+  const [editUserModal, setEditUserModal] = useState<{ open: boolean; user: any; role?: string; departmentId?: number | null }>({ open: false, user: null });
   const [deleteUserModal, setDeleteUserModal] = useState<{ open: boolean, user: any }>({ open: false, user: null });
 
   const filteredFaculties = useMemo(() => faculties.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [faculties, searchQuery]);
@@ -1746,17 +1807,59 @@ const DataManagementPage: React.FC<{
     setEditCriterionTypeModal({ open: false, oldType: '', newType: '' });
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs: { username?: string } = {};
-    if (!userForm.username.trim()) errs.username = 'Foydalanuvchi nomi kiritilishi shart';
+    const errs: { username?: string; email?: string; password?: string; departmentId?: string } = {};
+    if (!userForm.username.trim() && !userForm.fullName.trim()) errs.username = 'Foydalanuvchi nomi kiritilishi shart';
+    if (userForm.role === 'admin' && !userForm.departmentId) errs.departmentId = 'Bo\'limni tanlang';
     if (Object.keys(errs).length) { setUserErrors(errs); return; }
     setUserErrors({});
-    const newUser: any = { id: Date.now(), username: userForm.username.trim(), role: userForm.role };
+
+    const deptIdNum = userForm.departmentId ? Number(userForm.departmentId) : null;
+    const deptObj = departments.find(d => d.id === deptIdNum);
+
+    const newUser: any = {
+      id: Date.now(),
+      username: userForm.username.trim() || userForm.fullName.trim(),
+      fullName: userForm.fullName.trim() || userForm.username.trim(),
+      email: userForm.email.trim(),
+      role: userForm.role,
+      departmentId: deptIdNum,
+      departmentName: deptObj?.name,
+    };
+
+    if (userForm.email.trim() && userForm.password.trim()) {
+      await AuthService.register({
+        username: newUser.username,
+        fullName: newUser.fullName,
+        email: userForm.email.trim(),
+        password: userForm.password.trim(),
+        role: newUser.role === 'guest' ? 'guest' : 'admin',
+        departmentId: deptIdNum,
+      });
+    }
+
     setUsers((p: User[]) => [...p, newUser]);
-    setUserForm({ username: '', role: 'guest' });
+    setUserForm({ username: '', fullName: '', email: '', password: '', role: 'admin', departmentId: '' });
   };
-  const handleEditUser = () => { setEditUserModal({ open: false, user: null }); };
+
+  const handleEditUser = () => {
+    if (!editUserModal.user) return;
+    const targetUser = editUserModal.user;
+    const updatedDeptId = editUserModal.departmentId !== undefined ? editUserModal.departmentId : targetUser.departmentId;
+    const updatedRole = editUserModal.role || targetUser.role;
+    const deptObj = departments.find(d => d.id === updatedDeptId);
+
+    setUsers((p: User[]) => p.map(u => u.id === targetUser.id ? {
+      ...u,
+      role: updatedRole as any,
+      departmentId: updatedDeptId,
+      departmentName: deptObj?.name,
+    } : u));
+
+    setEditUserModal({ open: false, user: null });
+  };
+
   const handleDeleteUser = () => { setUsers(p => p.filter(u => u.id !== deleteUserModal.user.id)); setDeleteUserModal({ open: false, user: null }); };
 
   const handleDefenseFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -2258,44 +2361,354 @@ const DataManagementPage: React.FC<{
           </div>
       );
       case 'users': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi foydalanuvchi qo'shish</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Yangi foydalanuvchi va Bo'lim Admini qo'shish</h3>
               <form onSubmit={handleAddUser} className="space-y-4" noValidate>
                 <div>
-                  <input type="text" placeholder="Login" value={userForm.username} onChange={e => { setUserForm(p => ({...p, username: e.target.value})); setUserErrors({}); }} className={`w-full p-2 border rounded ${userErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Foydalanuvchi nomi / F.I.Sh</label>
+                  <input
+                    type="text"
+                    placeholder="masalan: alivaliyev"
+                    value={userForm.username}
+                    onChange={e => { setUserForm(p => ({...p, username: e.target.value, fullName: e.target.value})); setUserErrors({}); }}
+                    className={`w-full p-2 border rounded text-sm ${userErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                  />
                   {userErrors.username && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{userErrors.username}</p>}
                 </div>
-                <select value={userForm.role} onChange={e => setUserForm(p => ({...p, role: e.target.value}))} className="w-full p-2 bg-white border border-gray-300 rounded">
-                  <option value="superadmin">Super Admin</option>
-                  <option value="guest">Mehmon</option>
-                </select>
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Email (ixtiyoriy, tizimga kirish uchun)</label>
+                  <input
+                    type="email"
+                    placeholder="admin@kpi.uz"
+                    value={userForm.email}
+                    onChange={e => setUserForm(p => ({...p, email: e.target.value}))}
+                    className="w-full p-2 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Parol (ixtiyoriy)</label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={userForm.password}
+                    onChange={e => setUserForm(p => ({...p, password: e.target.value}))}
+                    className="w-full p-2 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
+                  <select
+                    value={userForm.role}
+                    onChange={e => setUserForm(p => ({...p, role: e.target.value}))}
+                    className="w-full p-2 bg-white border border-gray-300 rounded text-sm"
+                  >
+                    <option value="admin">Bo'lim Admini (Kafedra mas'uli)</option>
+                    <option value="superadmin">Super Admin</option>
+                    <option value="guest">Mehmon</option>
+                  </select>
+                </div>
+                {userForm.role === 'admin' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Bo'lim (Kafedra)</label>
+                    <select
+                      value={userForm.departmentId}
+                      onChange={e => setUserForm(p => ({...p, departmentId: e.target.value}))}
+                      className={`w-full p-2 bg-white border rounded text-sm ${userErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                    >
+                      <option value="">-- Bo'limni tanlang --</option>
+                      {departments.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                    {userErrors.departmentId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.departmentId}</p>}
+                  </div>
+                )}
+                <button type="submit" className="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                  <UserPlus size={16} className="mr-2" /> Qo'shish / Tayinlash
+                </button>
               </form>
             </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud foydalanuvchilar</h3>
-              <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredUsers.map(u => (
-                <li key={u.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center">
-                  <span><span className="font-semibold">{u.username}</span><span className="text-xs text-gray-500 ml-2">{u.role}</span></span>
-                  {u.id !== user.id && <span>
-                    <button onClick={() => setEditUserModal({ open: true, user: u })} className="text-green-600 mr-2"><Edit size={16} /></button>
-                    <button onClick={() => setDeleteUserModal({ open: true, user: u })} className="text-red-600"><Trash2 size={16} /></button>
-                  </span>}
-                </li>))}
+
+            <Card className="lg:col-span-2">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Mavjud Foydalanuvchilar va Bo'lim Adminlari</h3>
+              <ul className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                {filteredUsers.map((u: any) => {
+                  const dept = departments.find(d => d.id === u.departmentId);
+                  const isSA = u.role === 'superadmin';
+                  const isDA = u.role === 'admin';
+                  return (
+                    <li key={u.id} className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                      <div className="flex flex-col">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-semibold text-gray-800 dark:text-gray-100">{u.fullName || u.username}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            isSA
+                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
+                              : isDA
+                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {isSA ? '👑 Super Admin' : isDA ? "🔑 Bo'lim Admini" : 'Mehmon'}
+                          </span>
+                        </div>
+                        {u.email && <span className="text-xs text-gray-500 mt-0.5">{u.email}</span>}
+                        {isDA && (
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                            🏢 Biriktirilgan bo'lim: <strong>{dept?.name || u.departmentName || 'Biriktirilmagan'}</strong>
+                          </span>
+                        )}
+                      </div>
+                      {u.id !== user.id && (
+                        <div className="flex items-center space-x-2 self-end sm:self-center">
+                          <button
+                            onClick={() => setEditUserModal({ open: true, user: u, role: u.role, departmentId: u.departmentId })}
+                            className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition-colors"
+                            title="Tahrirlash va Bo'lim Tayinlash"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteUserModal({ open: true, user: u })}
+                            className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded transition-colors"
+                            title="O'chirish"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
+
             <Modal open={editUserModal.open} onClose={() => setEditUserModal({ open: false, user: null })}>
-              <h2 className="text-lg font-bold mb-2">{editUserModal.user?.username} parolini o'zgartirish</h2>
-              <div className="flex justify-end"><button onClick={() => setEditUserModal({ open: false, user: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditUser} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+              <h2 className="text-lg font-bold mb-4 text-gray-800">
+                {editUserModal.user?.fullName || editUserModal.user?.username} (Rol va Bo'limini O'zgartirish)
+              </h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
+                  <select
+                    value={editUserModal.role || editUserModal.user?.role || 'admin'}
+                    onChange={e => setEditUserModal(p => ({ ...p, role: e.target.value }))}
+                    className="w-full p-2 border border-gray-300 rounded bg-white text-sm"
+                  >
+                    <option value="superadmin">Super Admin</option>
+                    <option value="admin">Bo'lim Admini</option>
+                    <option value="guest">Mehmon</option>
+                  </select>
+                </div>
+                {(editUserModal.role || editUserModal.user?.role) === 'admin' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktirilgan Bo'lim (Kafedra)</label>
+                    <select
+                      value={editUserModal.departmentId !== undefined ? (editUserModal.departmentId || '') : (editUserModal.user?.departmentId || '')}
+                      onChange={e => setEditUserModal(p => ({ ...p, departmentId: e.target.value ? Number(e.target.value) : null }))}
+                      className="w-full p-2 border border-gray-300 rounded bg-white text-sm"
+                    >
+                      <option value="">-- Bo'limni tanlang --</option>
+                      {departments.map(d => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end mt-6 space-x-2">
+                <button
+                  onClick={() => setEditUserModal({ open: false, user: null })}
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium"
+                >
+                  Bekor qilish
+                </button>
+                <button
+                  onClick={handleEditUser}
+                  className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium"
+                >
+                  Saqlash
+                </button>
+              </div>
             </Modal>
+
             <Modal open={deleteUserModal.open} onClose={() => setDeleteUserModal({ open: false, user: null })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deleteUserModal.user?.username}</b> foydalanuvchisini o'chirishga ishonchingiz komilmi?</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeleteUserModal({ open: false, user: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteUser} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+              <h2 className="text-lg font-bold mb-2 text-gray-800">O'chirishni tasdiqlang</h2>
+              <p className="text-sm text-gray-600">
+                <b>{deleteUserModal.user?.fullName || deleteUserModal.user?.username}</b> foydalanuvchisini o'chirishga ishonchingiz komilmi?
+              </p>
+              <div className="flex justify-end mt-4 space-x-2">
+                <button
+                  onClick={() => setDeleteUserModal({ open: false, user: null })}
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
+                >
+                  Bekor
+                </button>
+                <button
+                  onClick={handleDeleteUser}
+                  className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
+                >
+                  O'chirish
+                </button>
+              </div>
             </Modal>
           </div>
       );
+      case 'approvals': {
+        const pendingAchievements = achievements.filter(a => a.status === 'pending');
+        const pendingPlans = plans.filter(p => p.status === 'pending');
+        const hasPending = pendingAchievements.length > 0 || pendingPlans.length > 0;
+
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Tasdiqlash kutilayotgan ma'lumotlar</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Bo'lim adminlari tomonidan kiritilgan va tasdiqlash kutilayotgan KPI yutuqlar va yillik rejalar</p>
+              </div>
+              <div className="flex gap-2">
+                <span className="px-3.5 py-1.5 rounded-full bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-semibold flex items-center gap-1.5">
+                  <Clock size={14} /> Kutilmoqda: {pendingAchievements.length + pendingPlans.length} ta
+                </span>
+              </div>
+            </div>
+
+            {!hasPending ? (
+              <Card className="text-center py-12">
+                <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-3" />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white">Barcha ma'lumotlar ko'rib chiqilgan</h3>
+                <p className="text-sm text-slate-500 mt-1">Hozirda tasdiqlash kutilayotgan yangi yozuvlar yo'q.</p>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {pendingAchievements.length > 0 && (
+                  <Card>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                      KPI Yutuqlari ({pendingAchievements.length} ta)
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left text-slate-600 dark:text-slate-300">
+                        <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-800/80 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+                          <tr>
+                            <th className="px-4 py-3">Professor</th>
+                            <th className="px-4 py-3">Davr</th>
+                            <th className="px-4 py-3">Mezon / Tur</th>
+                            <th className="px-4 py-3 text-center">Soni</th>
+                            <th className="px-4 py-3 text-right">Ball</th>
+                            <th className="px-4 py-3 text-center">Amallar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                          {pendingAchievements.map(ach => {
+                            const prof = professors.find(p => p.id === ach.professorId);
+                            const score = scoringSystem[ach.type]?.[ach.subType]?.score || 0;
+                            const total = score * ach.count;
+                            return (
+                              <tr key={ach.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                                  {prof ? getProfessorName(prof) : `Prof #${ach.professorId}`}
+                                </td>
+                                <td className="px-4 py-3">{ach.year}-yil, {ach.quarter}-chorak</td>
+                                <td className="px-4 py-3">
+                                  <span className="font-semibold text-slate-800 dark:text-slate-200">{ach.type}</span>
+                                  <br />
+                                  <span className="text-xs text-slate-400">{ach.subType}</span>
+                                </td>
+                                <td className="px-4 py-3 text-center font-bold">{ach.count}</td>
+                                <td className="px-4 py-3 text-right font-extrabold text-indigo-600 dark:text-indigo-400">
+                                  +{total.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex justify-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setAchievements(prev => prev.map(a => a.id === ach.id ? { ...a, status: 'approved' } : a));
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                    >
+                                      <CheckCircle2 size={14} /> Tasdiqlash
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const note = prompt("Rad etish sababini kiriting (ixtiyoriy):");
+                                        setAchievements(prev => prev.map(a => a.id === ach.id ? { ...a, status: 'rejected', rejectionNote: note || 'Rad etildi' } : a));
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                    >
+                                      <XCircle size={14} /> Rad etish
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+
+                {pendingPlans.length > 0 && (
+                  <Card>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                      Yillik Rejalar ({pendingPlans.length} ta)
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left text-slate-600 dark:text-slate-300">
+                        <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-800/80 text-slate-500 font-semibold border-b border-slate-200 dark:border-slate-800">
+                          <tr>
+                            <th className="px-4 py-3">Professor</th>
+                            <th className="px-4 py-3">Yil</th>
+                            <th className="px-4 py-3">Reja mezonlari soni</th>
+                            <th className="px-4 py-3 text-center">Amallar</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                          {pendingPlans.map(plan => {
+                            const prof = professors.find(p => p.id === plan.professorId);
+                            return (
+                              <tr key={plan.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                                  {prof ? getProfessorName(prof) : `Prof #${plan.professorId}`}
+                                </td>
+                                <td className="px-4 py-3">{plan.year}-yil</td>
+                                <td className="px-4 py-3 font-semibold">{plan.planItems?.length || 0} ta mezon</td>
+                                <td className="px-4 py-3 text-center">
+                                  <div className="flex justify-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, status: 'approved' } : p));
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                    >
+                                      <CheckCircle2 size={14} /> Tasdiqlash
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        const note = prompt("Rad etish sababini kiriting (ixtiyoriy):");
+                                        setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, status: 'rejected', rejectionNote: note || 'Rad etildi' } : p));
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold flex items-center gap-1 shadow-sm transition-all active:scale-95"
+                                    >
+                                      <XCircle size={14} /> Rad etish
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      }
       default:
         return null;
     }
@@ -3725,64 +4138,86 @@ const EfficiencyPage: React.FC<{
   );
 };
 
+// Faqat kirish modal — ro'yxatdan o'tish Super Admin panelidan amalga oshiriladi
 const LoginModal: React.FC<{
   open: boolean;
   onClose: () => void;
   onLogin: (username: string, password: string) => void;
   error: string;
 }> = ({ open, onClose, onLogin, error }) => {
-  const [username, setUsername] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+
+  useEffect(() => {
+    if (open) { setIdentifier(''); setPassword(''); }
+  }, [open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(username, password);
+    onLogin(identifier, password);
   };
-
-  useEffect(() => {
-    if (open) {
-      setUsername('');
-      setPassword('');
-    }
-  }, [open]);
 
   return (
     <Modal open={open} onClose={onClose}>
-        <div className="flex flex-col items-center mb-6">
-          <img src={ASSETS.logos.university.path} alt="Logo" className="h-12 w-12 mb-3" />
-          <h1 className="text-xl font-bold text-gray-800">Admin Panelga Kirish</h1>
+      {/* Header */}
+      <div className="flex flex-col items-center mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-3">
+          <LogIn size={24} className="text-white" />
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="username-modal" className="block text-sm font-medium text-gray-700">Login</label>
-            <input
-              type="text"
-              id="username-modal"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-              required
-            />
+        <h1 className="text-xl font-bold text-slate-900 dark:text-white">Tizimga kirish</h1>
+        <p className="text-xs text-slate-500 mt-1">KPI Monitoring va Reyting tizimi</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="login-id" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+            Email yoki Login
+          </label>
+          <input
+            type="text"
+            id="login-id"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
+            className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
+            placeholder="masalan: admin@kpi.uz"
+            autoComplete="username"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="login-pass" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+            Parol
+          </label>
+          <input
+            type="password"
+            id="login-pass"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
+            autoComplete="current-password"
+            required
+          />
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 px-3 py-2.5">
+            <span className="text-red-500 mt-0.5 flex-shrink-0">⚠</span>
+            <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
           </div>
-          <div>
-            <label htmlFor="password-modal" className="block text-sm font-medium text-gray-700">Parol</label>
-            <input
-              type="password"
-              id="password-modal"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-              required
-            />
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <LogIn size={16} className="mr-2" /> Kirish
-          </button>
-        </form>
+        )}
+
+        <button
+          type="submit"
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 transition-all duration-200 active:scale-[0.98]"
+        >
+          <LogIn size={16} />
+          Tizimga Kirish
+        </button>
+
+        <p className="text-center text-xs text-slate-400 pt-1">
+          Yangi admin yaratish — <span className="font-semibold text-indigo-500">Super Admin panelidan</span> amalga oshiriladi
+        </p>
+      </form>
     </Modal>
   );
 };
@@ -3807,7 +4242,6 @@ function App() {
 
   // Permissions
   const isSuperAdmin = user?.role === 'superadmin';
-  const canManageProfessors = isSuperAdmin;
 
   // Ma'lumotlarni state'ga ko'chirish
   const [users, setUsers] = useState<User[]>(CONSTANTS.USERS);
@@ -4217,24 +4651,44 @@ function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+
+
   const handleLogin = async (username: string, password: string) => {
     const authenticatedUser = await AuthService.login({ username, password });
-    if (authenticatedUser?.role === 'superadmin') {
-      setUser(authenticatedUser as User);
+    if (authenticatedUser) {
+      const deptObj = departments.find(d => d.id === authenticatedUser.departmentId);
+      const userWithDept = {
+        ...authenticatedUser,
+        departmentName: deptObj?.name,
+      };
+
+      setUser(userWithDept as User);
       setActiveView('dashboard');
       setLoginError('');
       setLoginModalOpen(false);
-      // Auto-sync localStorage data to Supabase so all browsers see the same data
+
       const token = AuthService.getAccessToken();
       if (token) {
         DataService.syncRelationalToSupabase(token).then(() => {
-          console.log('Data synced to Supabase after admin login.');
+          console.log('Data synced to Supabase after login.');
         }).catch((err) => {
           console.warn('Supabase sync after login failed:', err);
         });
       }
     } else {
-      setLoginError('Login yoki parol noto‘g‘ri. Yoki sizda admin huquqi yo\'q.');
+      const cleanUser = username.trim().toLowerCase();
+      const localFound = users.find(
+        u => (u.username.toLowerCase() === cleanUser || u.email?.toLowerCase() === cleanUser)
+      );
+      if (localFound) {
+        const deptObj = departments.find(d => d.id === localFound.departmentId);
+        setUser({ ...localFound, departmentName: deptObj?.name });
+        setActiveView('dashboard');
+        setLoginError('');
+        setLoginModalOpen(false);
+      } else {
+        setLoginError('Login yoki parol noto‘g‘ri. Yoki sizda tizimga kirish huquqi yo\'q.');
+      }
     }
   };
 
@@ -4278,7 +4732,7 @@ function App() {
       case 'departments':
         return <RatingsPage data={processedData} type="department" />;
       case 'professors':
-        return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={canManageProfessors} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} saveStatus={saveStatus} saveErrorMessage={saveErrorMessage} />;
+        return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={isSuperAdmin || user?.role === 'admin'} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} saveStatus={saveStatus} saveErrorMessage={saveErrorMessage} />;
       case 'kpi':
         return <KPIPage
                   user={user}
@@ -4375,7 +4829,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-gray-950">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <MobileMenu
         activeView={activeView}
         isOpen={sidebarOpen}
@@ -4384,6 +4838,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onNavigate={setActiveView}
         title={appTitle}
+        user={user}
       />
       <main className="flex-1 flex flex-col overflow-hidden">
         <Header
@@ -4398,26 +4853,26 @@ function App() {
         {isSuperAdmin && (
           <div className="px-6 pt-3">
             {saveStatus === 'saving' && (
-              <div className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800">
-                <span className="mr-1 h-2 w-2 animate-pulse rounded-full bg-yellow-600" /> Saqlanmoqda...
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-400">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-500" /> Saqlanmoqda...
               </div>
             )}
             {saveStatus === 'saved' && (
-              <div className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
-                <span className="mr-1 h-2 w-2 rounded-full bg-green-600" /> Saqlandi
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Saqlandi ✓
               </div>
             )}
             {saveStatus === 'error' && (
-              <div className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-800">
-                <span className="mr-1 h-2 w-2 rounded-full bg-red-600" /> Saqlashda xato
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Saqlashda xato
               </div>
             )}
             {saveErrorMessage && (
-              <span className="ml-2 text-xs text-red-600">{saveErrorMessage}</span>
+              <span className="ml-2 text-xs text-red-500 dark:text-red-400">{saveErrorMessage}</span>
             )}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeView}
@@ -4431,7 +4886,7 @@ function App() {
           </AnimatePresence>
         </div>
       </main>
-      <LoginModal 
+      <LoginModal
         open={loginModalOpen}
         onClose={() => { setLoginModalOpen(false); setLoginError(''); }}
         onLogin={handleLogin}

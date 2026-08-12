@@ -112,11 +112,13 @@ create table if not exists public.thesis_defenses (
 );
 
 create table if not exists public.app_users (
-  id         uuid  primary key references auth.users(id) on delete cascade,
-  email      text  not null unique,
-  role       text  not null check (role in ('admin', 'superadmin', 'guest')),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  id            uuid        primary key references auth.users(id) on delete cascade,
+  email         text        not null unique,
+  full_name     text,
+  role          text        not null check (role in ('admin', 'superadmin', 'guest')),
+  department_id bigint      references public.departments(id) on delete set null,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
 );
 
 -- ─── Indexes ─────────────────────────────────────────────────

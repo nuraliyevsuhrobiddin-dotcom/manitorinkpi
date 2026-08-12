@@ -17,10 +17,20 @@ export interface AuthCredentials {
   password: string;
 }
 
+export interface RegisterCredentials {
+  username: string;
+  email: string;
+  password: string;
+  role?: 'admin' | 'guest';
+  departmentId?: number | null;
+  fullName?: string;
+}
+
 export interface AuthProvider {
   getCurrentUser(): User | null;
   getAccessToken(): string | null;
   login(credentials: AuthCredentials): Promise<User | null>;
+  register(credentials: RegisterCredentials): Promise<{ user: User | null; error?: string }>;
   logout(): Promise<void>;
   refreshSession(): Promise<boolean>;
   validateSession(): Promise<User | null>;
@@ -64,11 +74,7 @@ const adminEmails = new Set<string>([
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
- * Returns true if the Supabase auth user should be treated as an admin.
- * Checks (in priority order):
- *  1. user_metadata.role = admin | superadmin
- *  2. app_metadata.role  = admin | superadmin
- *  3. email is in the admin whitelist
+ * Returns true if the Supabase auth user should be treated as an admin or superadmin.
  */
 const isAdminUser = (authUser: SupabaseAuthUser): boolean => {
   const email = authUser.email?.toLowerCase() ?? '';
@@ -87,15 +93,33 @@ const isAdminUser = (authUser: SupabaseAuthUser): boolean => {
 
 /**
  * Map a Supabase auth user to the app User type.
- * Returns null if the user is not an admin.
  */
-const toAppUser = (authUser: SupabaseAuthUser): User | null => {
-  if (!isAdminUser(authUser)) return null;
+const toAppUser = (authUser: SupabaseAuthUser): User => {
+  const email = authUser.email?.toLowerCase() ?? '';
+  const metadataRole = String(
+    authUser.user_metadata?.role ||
+    authUser.app_metadata?.role  ||
+    ''
+  ).toLowerCase();
+
+  let role: 'superadmin' | 'admin' | 'guest' = 'guest';
+  if (metadataRole === 'superadmin' || (email.length > 0 && adminEmails.has(email))) {
+    role = 'superadmin';
+  } else if (metadataRole === 'admin' || isAdminUser(authUser)) {
+    role = 'admin';
+  }
+
+  const rawDeptId = authUser.user_metadata?.departmentId || authUser.app_metadata?.departmentId;
+  const departmentId = rawDeptId ? Number(rawDeptId) : null;
+  const fullName = String(authUser.user_metadata?.full_name || authUser.user_metadata?.fullName || authUser.user_metadata?.username || email.split('@')[0] || 'Foydalanuvchi');
 
   return {
-    id: Number.parseInt(authUser.id.replace(/\D/g, '').slice(0, 9), 10) || 1,
-    username: authUser.email ?? 'admin',
-    role: 'superadmin',
+    id: authUser.id,
+    username: String(authUser.user_metadata?.username || email || 'user'),
+    email: authUser.email,
+    fullName,
+    role,
+    departmentId,
   };
 };
 
@@ -238,13 +262,55 @@ class SupabaseAuthProvider implements AuthProvider {
     const session = (await response.json()) as SupabaseAuthSession;
     const appUser = toAppUser(session.user);
 
-    if (!appUser) {
-      console.warn('[AuthService] User is not an admin:', session.user.email);
-      return null;
-    }
-
     this.saveSession(session);
     return appUser;
+  }
+
+  async register({ username, email, password, role = 'admin', departmentId, fullName }: RegisterCredentials): Promise<{ user: User | null; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return { user: null, error: "Supabase sozlamalari topilmadi." };
+    }
+
+    try {
+      const response = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+          apikey: supabaseAnonKey,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password,
+          data: {
+            username: username.trim(),
+            full_name: fullName || username.trim(),
+            role,
+            departmentId: departmentId || null,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text().catch(() => '');
+        let message = "Ro'yxatdan o'tishda xatolik yuz berdi.";
+        try {
+          const parsed = JSON.parse(errorBody);
+          message = parsed.msg || parsed.message || parsed.error_description || message;
+        } catch {}
+        return { user: null, error: message };
+      }
+
+      const session = (await response.json()) as SupabaseAuthSession;
+      if (session && session.access_token) {
+        this.saveSession(session);
+        return { user: toAppUser(session.user) };
+      }
+
+      return { user: null, error: "Ro'yxatdan o'tildi! Tizimga kiring." };
+    } catch (err: any) {
+      return { user: null, error: err.message || "Tarmoq xatosi yuz berdi." };
+    }
   }
 
   async logout(): Promise<void> {

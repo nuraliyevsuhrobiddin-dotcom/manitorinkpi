@@ -85,9 +85,13 @@ export interface ThesisDefense {
 }
 
 export interface User {
-  id: number;
+  id: number | string;
   username: string;
-  role: 'superadmin' | 'guest';
+  email?: string;
+  fullName?: string;
+  role: 'superadmin' | 'admin' | 'guest';
+  departmentId?: number | null;
+  departmentName?: string;
 }
 
 export interface ScoringCriterion {

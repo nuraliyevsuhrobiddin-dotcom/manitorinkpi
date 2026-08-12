@@ -9,6 +9,7 @@ type MobileMenuProps = {
   onClose: () => void;
   onNavigate: (viewId: string) => void;
   title: string;
+  user?: { role?: string; username?: string; fullName?: string; departmentName?: string } | null;
 };
 
 export const MobileMenu: React.FC<MobileMenuProps> = ({
@@ -19,6 +20,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
   onClose,
   onNavigate,
   title,
+  user,
 }) => {
   const [shouldRender, setShouldRender] = React.useState(isOpen);
 
@@ -88,6 +90,7 @@ export const MobileMenu: React.FC<MobileMenuProps> = ({
             onClose();
           }}
           title={title}
+          user={user}
         />
       </div>
     </div>
