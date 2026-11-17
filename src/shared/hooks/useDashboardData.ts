@@ -84,7 +84,7 @@ const safeFetch = async <T>(
         `  Check:\n` +
         `  1. Supabase RLS policies allow anon SELECT on '${path}'\n` +
         `  2. is_app_admin() is SECURITY DEFINER in your Supabase project\n` +
-        `  3. Run supabase_migration_final.sql in Supabase SQL Editor\n`,
+        `  3. Run supabase_schema.sql and supabase_backfill_app_users.sql in Supabase SQL Editor\n`,
         detail
       );
     } else if (res.status === 402) {

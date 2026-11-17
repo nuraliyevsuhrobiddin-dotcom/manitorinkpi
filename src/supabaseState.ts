@@ -156,7 +156,7 @@ export const SupabaseState = {
         hint =
           ' HINT: Check that is_app_admin() is SECURITY DEFINER and the ' +
           'admin user exists in public.app_users with role=superadmin. ' +
-          'Run supabase_migration_final.sql in the Supabase SQL Editor.';
+          'Run supabase_schema.sql and supabase_backfill_app_users.sql in the Supabase SQL Editor.';
       }
       throw new Error(
         `[SupabaseState] Save failed: ${response.status} ${response.statusText} — ${detail}${hint}`

@@ -64,7 +64,7 @@ const fetchSupabaseData = async <T>(
       console.error(`⚠ [DataService] RLS/Auth error on '${path}' (${response.status}). Check:
   1. Supabase RLS policies allow anon SELECT on '${path}'
   2. Or use an auth token: VITE_SUPABASE_ANON_KEY has read access
-  3. Run supabase_migration_final.sql to fix policies\n`, detail);
+  3. Run supabase_schema.sql and supabase_backfill_app_users.sql to fix policies\n`, detail);
     } else if (response.status === 402) {
       console.error(`⚠ [DataService] Supabase quota/billing limit reached for '${path}' (${response.status}).`);
     } else {
@@ -197,6 +197,41 @@ const toProject = (row: Record<string, unknown>): Project => ({
   facultyId: Number(row.faculty_id ?? row.facultyId ?? 0),
   totalFunding: Number(row.total_funding ?? row.totalFunding ?? 0),
   duration: Number(row.duration ?? 0),
+});
+
+const toUser = (row: Record<string, unknown>): User => {
+  const email = normalizeString(row.email);
+  const role = row.role === 'superadmin' || row.role === 'admin' ? row.role : 'guest';
+  return {
+    id: normalizeString(row.id),
+    username: email.split('@')[0] || email,
+    email,
+    fullName: normalizeString(row.full_name ?? row.fullName) || email,
+    role,
+    departmentId: row.department_id != null ? Number(row.department_id) : null,
+  };
+};
+
+/** Upsert Supabase-sourced app_users rows into the local users list without
+ *  dropping local-only entries (e.g. the offline guest/demo accounts that
+ *  have no corresponding auth.users row). */
+const mergeUsers = (local: User[], remote: User[]): User[] => {
+  const remoteById = new Map(remote.map((u) => [String(u.id), u]));
+  const merged = local.map((u) => {
+    const match = remoteById.get(String(u.id));
+    if (!match) return u;
+    remoteById.delete(String(u.id));
+    return { ...u, ...match };
+  });
+  return [...merged, ...remoteById.values()];
+};
+
+const toAppUserRow = (user: User) => ({
+  id: user.id,
+  email: user.email,
+  full_name: user.fullName,
+  role: user.role,
+  department_id: user.departmentId ?? null,
 });
 
 const toThesisDefense = (row: Record<string, unknown>): ThesisDefense => ({
@@ -353,9 +388,10 @@ class LocalDataRepository {
       fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.achievements,   null, 'select=*'),
       fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.projects,       null, 'select=*'),
       fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.thesisDefenses, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.users,          null, 'select=*'),
     ]);
 
-    const [fRes, dRes, pRes, plRes, piRes, aRes, prRes, tdRes] = settled;
+    const [fRes, dRes, pRes, plRes, piRes, aRes, prRes, tdRes, uRes] = settled;
 
     // Helper: unwrap or warn and return cached/default
     const unwrap = <T>(result: PromiseSettledResult<T[]>, name: string, fallback: T[]): T[] => {
@@ -380,6 +416,7 @@ class LocalDataRepository {
     const achievementsRaw = unwrap(aRes,  'achievements',    (existing?.ACHIEVEMENTS     as any[]) || []);
     const projectsRaw     = unwrap(prRes, 'projects',        (existing?.PROJECTS         as any[]) || []);
     const thesisRaw       = unwrap(tdRes, 'thesis_defenses', (existing?.THESIS_DEFENSES  as any[]) || []);
+    const appUsersRaw     = unwrap(uRes,  'app_users',       []);
 
     const facultyList    = facultiesRaw.map(toFaculty);
     const departmentList = departmentsRaw.map(toDepartment);
@@ -388,6 +425,7 @@ class LocalDataRepository {
     const achievementList= achievementsRaw.map(toAchievement);
     const projectList    = projectsRaw.map(toProject);
     const thesisDefenseList = thesisRaw.map(toThesisDefense);
+    const remoteUserList = appUsersRaw.map(toUser);
 
     // ⚠ CRITICAL: never replace with empty arrays — keep existing data as fallback
     const guardArr = <T>(fresh: T[], prev: T[]): T[] =>
@@ -403,7 +441,7 @@ class LocalDataRepository {
       ACHIEVEMENTS:    guardArr(achievementList,  (existing?.ACHIEVEMENTS    as any[]) || []),
       PROJECTS:        guardArr(projectList,      (existing?.PROJECTS        as any[]) || []),
       THESIS_DEFENSES: guardArr(thesisDefenseList,(existing?.THESIS_DEFENSES as any[]) || []),
-      USERS: existing?.USERS || DEFAULT_DATA.USERS,
+      USERS: mergeUsers((existing?.USERS as User[]) || DEFAULT_DATA.USERS, remoteUserList),
     };
   }
 
@@ -525,6 +563,31 @@ class LocalDataRepository {
     d.USERS = users;
     this.saveToStorage();
     return d.USERS;
+  }
+
+  /** Upsert a single row into the relational `app_users` table (RLS requires
+   *  the caller to already be an admin — pass their access token). */
+  async saveAppUserRow(user: User, token?: string | null): Promise<void> {
+    await mutateSupabaseData(
+      SUPABASE_REST_PATHS.users,
+      'POST',
+      toAppUserRow(user),
+      token,
+      'on_conflict=id'
+    );
+  }
+
+  /** Remove a row from `app_users` (revokes admin RLS access for that
+   *  account; does NOT delete the underlying Supabase Auth user — that
+   *  requires the service-role Admin API). */
+  async deleteAppUserRow(id: string, token?: string | null): Promise<void> {
+    await mutateSupabaseData(
+      SUPABASE_REST_PATHS.users,
+      'DELETE',
+      null,
+      token,
+      `id=eq.${id}`
+    );
   }
 
   async saveScoringSystem(
@@ -911,6 +974,10 @@ export const DataService = {
   users: {
     getAll: () => dataRepository.getUsers(),
     save: (items: User[]) => dataRepository.saveUsers(items),
+  },
+  appUsers: {
+    save: (user: User, token?: string | null) => dataRepository.saveAppUserRow(user, token),
+    delete: (id: string, token?: string | null) => dataRepository.deleteAppUserRow(id, token),
   },
   scoringSystem: {
     get: () => dataRepository.getScoringSystem(),

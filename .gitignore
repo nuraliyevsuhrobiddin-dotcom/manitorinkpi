@@ -15,3 +15,5 @@ volterManifest.json
 data.schema.json
 .sixth/
 .agent-cache/
+.vscode/
+kpi/

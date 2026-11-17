@@ -193,10 +193,17 @@ create trigger app_users_set_updated_at
 
 -- ─── is_app_admin() ──────────────────────────────────────────
 -- Checks (in order):
---   1. user_metadata.role = admin/superadmin
---   2. app_metadata.role  = admin/superadmin
---   3. email in hardcoded admin list
---   4. app_users table has role admin/superadmin (most reliable)
+--   1. app_metadata.role  = admin/superadmin (service-role only — safe)
+--   2. email in hardcoded admin list
+--   3. app_users table has role admin/superadmin (most reliable)
+--
+-- SECURITY NOTE: user_metadata.role is intentionally NOT checked here.
+-- user_metadata is set by the client at signup (POST /auth/v1/signup body.data)
+-- using only the public anon key, so trusting it lets anyone self-assign
+-- role:"superadmin" and bypass every RLS policy below. Only app_metadata
+-- (writable solely via the service-role key) and the app_users table
+-- (writable only by an existing admin, per admin_manage_app_users policy)
+-- are trustworthy authorization sources.
 
 create or replace function public.is_app_admin()
 returns boolean
@@ -206,16 +213,13 @@ security definer
 set search_path = ''            -- prevents search_path injection
 as $$
   select coalesce(
-    -- Check 1: user_metadata.role (set in Supabase Dashboard → Auth → Users)
-    lower(coalesce(auth.jwt() -> 'user_metadata' ->> 'role', ''))
+    -- Check 1: app_metadata.role (set via service-role API or SQL)
+    lower(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', ''))
       = any (array['admin', 'superadmin'])
-    -- Check 2: app_metadata.role (set via service-role API or SQL)
-    or lower(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', ''))
-      = any (array['admin', 'superadmin'])
-    -- Check 3: JWT email whitelist (always reliable — no table lookup)
+    -- Check 2: JWT email whitelist (always reliable — no table lookup)
     or lower(coalesce(auth.jwt() ->> 'email', ''))
       = any (array['suhrobiddinnuraliyev04@gmail.com'])
-    -- Check 4: app_users table (SECURITY DEFINER bypasses RLS here — no recursion)
+    -- Check 3: app_users table (SECURITY DEFINER bypasses RLS here — no recursion)
     or exists (
       select 1
       from   public.app_users

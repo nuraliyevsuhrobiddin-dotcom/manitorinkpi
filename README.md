@@ -28,8 +28,8 @@ npm run build
 
 ## Supabase sozlash
 
-1. **Schema**: `supabase_schema.sql` faylini Supabase SQL Editor da bir marta bajaring
-2. **Admin**: `supabase_fix_rls.sql` faylini bajaring — admin foydalanuvchini `app_users` jadvaliga qo'shadi
+1. **Schema**: `supabase_schema.sql` faylini Supabase SQL Editor da bir marta bajaring (qayta bajarish ham xavfsiz)
+2. **Backfill**: `supabase_backfill_app_users.sql` faylini bajaring — `user_metadata.role` orqali admin bo'lgan mavjud foydalanuvchilarni `app_users` jadvaliga ko'chiradi (yangi loyihada bu bo'sh natija qaytaradi, shunda ham xavfsiz)
 
 ## Muhit o'zgaruvchilari (`.env`)
 
