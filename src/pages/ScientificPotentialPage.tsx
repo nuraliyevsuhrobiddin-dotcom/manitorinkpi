@@ -168,8 +168,8 @@ export const ScientificPotentialPage: React.FC<{
       'Jinsi': prof.gender,
       'Tug‘ilgan sana': prof.birthDate,
       'Yoshi': getAge(prof.birthDate),
-      'Fakultet': prof.faculty.name,
-      'Kafedra': prof.department.name,
+      'Fakultet': prof.faculty?.name || '—',
+      'Kafedra': prof.department?.name || '—',
       'Lavozimi': prof.position,
       'O‘rindoshlik turi': prof.employmentType,
       'Shtat birligi': prof.staffUnit,
@@ -256,8 +256,8 @@ export const ScientificPotentialPage: React.FC<{
                   <td className="px-4 py-2 capitalize">{prof.gender}</td>
                   <td className="px-4 py-2">{prof.birthDate}</td>
                   <td className="px-4 py-2">{getAge(prof.birthDate)}</td>
-                  <td className="px-4 py-2">{prof.faculty.name}</td>
-                  <td className="px-4 py-2">{prof.department.name}</td>
+                  <td className="px-4 py-2">{prof.faculty?.name || '—'}</td>
+                  <td className="px-4 py-2">{prof.department?.name || '—'}</td>
                   <td className="px-4 py-2">{prof.position}</td>
                   <td className="px-4 py-2">{prof.employmentType}</td>
                   <td className="px-4 py-2">{prof.staffUnit.toFixed(2)}</td>

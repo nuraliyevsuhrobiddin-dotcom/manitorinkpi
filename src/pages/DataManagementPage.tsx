@@ -171,7 +171,17 @@ export const DataManagementPage: React.FC<{
     setFacultyName('');
   };
   const handleEditFaculty = () => { setFaculties(p => p.map(f => f.id === editFacultyModal.faculty.id ? { ...f, name: editFacultyName } : f)); setEditFacultyModal({ open: false, faculty: null }); };
-  const handleDeleteFaculty = () => { setFaculties(p => p.filter(f => f.id !== deleteFacultyModal.faculty.id)); setDepartments(p => p.filter(d => d.facultyId !== deleteFacultyModal.faculty.id)); setDeleteFacultyModal({ open: false, faculty: null }); };
+  const handleDeleteFaculty = () => {
+    if (!deleteFacultyModal.faculty) return;
+    const facId = deleteFacultyModal.faculty.id;
+    const deptIdsToDelete = new Set(departments.filter(d => d.facultyId === facId).map(d => d.id));
+    setFaculties(p => p.filter(f => f.id !== facId));
+    setDepartments(p => p.filter(d => !deptIdsToDelete.has(d.id)));
+    setProfessors(p => p.filter(prof => !deptIdsToDelete.has(prof.departmentId)));
+    setProjects(p => p.filter(pr => pr.facultyId !== facId && !deptIdsToDelete.has(pr.departmentId)));
+    setThesisDefenses(p => p.filter(td => td.facultyId !== facId && !deptIdsToDelete.has(td.departmentId)));
+    setDeleteFacultyModal({ open: false, faculty: null });
+  };
 
   const handleAddDepartment = (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +195,15 @@ export const DataManagementPage: React.FC<{
     setDeptFacultyId(faculties[0]?.id || '');
   };
   const handleEditDept = () => { setDepartments(p => p.map(d => d.id === editDeptModal.dept.id ? { ...d, name: editDeptName, facultyId: Number(editDeptFacultyId) } : d)); setEditDeptModal({ open: false, dept: null }); };
-  const handleDeleteDept = () => { setDepartments(p => p.filter(d => d.id !== deleteDeptModal.dept.id)); setProfessors(p => p.filter(prof => prof.departmentId !== deleteDeptModal.dept.id)); setDeleteDeptModal({ open: false, dept: null }); };
+  const handleDeleteDept = () => {
+    if (!deleteDeptModal.dept) return;
+    const deptId = deleteDeptModal.dept.id;
+    setDepartments(p => p.filter(d => d.id !== deptId));
+    setProfessors(p => p.filter(prof => prof.departmentId !== deptId));
+    setProjects(p => p.filter(pr => pr.departmentId !== deptId));
+    setThesisDefenses(p => p.filter(td => td.departmentId !== deptId));
+    setDeleteDeptModal({ open: false, dept: null });
+  };
 
   const handleAddDivision = (e: React.FormEvent) => {
     e.preventDefault();

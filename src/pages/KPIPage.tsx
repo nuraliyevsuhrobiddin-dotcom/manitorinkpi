@@ -40,7 +40,7 @@ export const KPIPage: React.FC<{
       const lowerQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(p =>
         p.name.toLowerCase().includes(lowerQuery) ||
-        p.department.name.toLowerCase().includes(lowerQuery)
+        (p.department?.name && p.department.name.toLowerCase().includes(lowerQuery))
       );
     }
 
@@ -81,8 +81,8 @@ export const KPIPage: React.FC<{
   }, [selectedProfessor, departmentRatings]);
 
   const selectedProfessorFaculty = useMemo(() => {
-    if (!selectedProfessor) return null;
-    return facultyRatings.find(f => f.id === selectedProfessor.faculty.id);
+    if (!selectedProfessor || !selectedProfessor.faculty) return null;
+    return facultyRatings.find(f => f.id === selectedProfessor.faculty?.id);
   }, [selectedProfessor, facultyRatings]);
 
   const handleExportKPI = () => {
@@ -93,7 +93,7 @@ export const KPIPage: React.FC<{
     const dataToExport = filteredProfessors.map((prof, index) => ({
       '№': index + 1,
       'F.I.Sh.': prof.name,
-      'Kafedra': prof.department.name,
+      'Kafedra': prof.department?.name || 'Biriktirilmagan',
       'Reja': prof.annualPlan.toFixed(2),
       'Amalda': prof.totalScore.toFixed(2),
       'Bajarilish %': prof.completionPercent.toFixed(1),
@@ -177,7 +177,7 @@ export const KPIPage: React.FC<{
                 <tr key={prof.id} className="bg-white border-b hover:bg-gray-50">
                   <td className="px-4 py-2 font-medium text-gray-700">{(currentPage - 1) * pageSize + index + 1}</td>
                   <th className="px-4 py-2 font-medium text-gray-900 whitespace-nowrap">{prof.name}</th>
-                  <td className="px-4 py-2">{prof.department.name}</td>
+                  <td className="px-4 py-2">{prof.department?.name || '—'}</td>
                   <td className="px-4 py-2 text-right font-semibold text-gray-700">{prof.annualPlan.toFixed(2)}</td>
                   <td className="px-4 py-2 text-right font-bold text-blue-600">{prof.totalScore.toFixed(2)}</td>
                   <td className="px-4 py-2 text-right font-bold text-green-600">{prof.completionPercent.toFixed(1)}%</td>

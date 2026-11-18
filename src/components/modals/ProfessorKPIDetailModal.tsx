@@ -52,7 +52,7 @@ export const ProfessorKPIDetailModal: React.FC<{
     <Modal open={open} onClose={onClose} className="max-w-4xl">
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-gray-800">{professor.name}</h2>
-        <p className="text-sm text-gray-500">{professor.position}, {professor.department.name}</p>
+        <p className="text-sm text-gray-500">{professor.position}, {professor.department?.name || '—'}</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

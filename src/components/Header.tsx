@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onLoginClick}
               className="inline-flex items-center px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/25 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <LogIn size={16} className="mr-2" /> Kirish / Ro'yxatdan o'tish
+              <LogIn size={16} className="mr-2" /> Tizimga kirish
             </button>
           </div>
         )}

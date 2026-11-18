@@ -167,6 +167,7 @@ const toPlan = (
       id: planId,
       professorId: Number(plan.professor_id ?? plan.professorId ?? 0),
       year: Number(plan.year ?? 0),
+      status: (plan.status as any) || 'approved',
       planItems: (itemsByPlan.get(planId) || []).map((item) => ({
         type: normalizeString(item.type),
         subType: normalizeString(item.sub_type ?? item.subType),
@@ -184,6 +185,8 @@ const toAchievement = (row: Record<string, unknown>): Achievement => ({
   type: normalizeString(row.type),
   subType: normalizeString(row.sub_type ?? row.subType),
   count: Number(row.count ?? 0),
+  status: (row.status as any) || 'approved',
+  rejectionNote: normalizeString(row.rejection_note ?? row.rejectionNote),
 });
 
 const toProject = (row: Record<string, unknown>): Project => ({

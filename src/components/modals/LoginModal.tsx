@@ -35,7 +35,7 @@ export const LoginModal: React.FC<{
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="login-id" className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-            Email yoki Login
+            Email manzili
           </label>
           <input
             type="text"

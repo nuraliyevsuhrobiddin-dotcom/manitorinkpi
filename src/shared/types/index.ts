@@ -40,6 +40,8 @@ export interface Plan {
   id?: number;
   professorId: number;
   year: number;
+  status?: 'pending' | 'approved' | 'rejected';
+  rejectionNote?: string;
   planItems: PlanItem[];
 }
 
@@ -51,6 +53,8 @@ export interface Achievement {
   type: string;
   subType: string;
   count: number;
+  status?: 'pending' | 'approved' | 'rejected';
+  rejectionNote?: string;
 }
 
 export interface Project {
