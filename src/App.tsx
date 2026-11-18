@@ -62,7 +62,7 @@ const getViewFromHash = (): string => {
 };
 
 function App() {
-  const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
+  const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || { id: 0, username: 'guest', role: 'guest' }, []);
 
   // Initialize from localStorage — validateSession() will verify server-side on mount
   const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
@@ -214,35 +214,35 @@ function App() {
         if (cancelled) return;
 
         const profCount = (data.PROFESSORS as any[])?.length ?? 0;
-        const facCount  = (data.FACULTIES  as any[])?.length ?? 0;
+        const facCount = (data.FACULTIES as any[])?.length ?? 0;
         const deptCount = (data.DEPARTMENTS as any[])?.length ?? 0;
-        const achCount  = (data.ACHIEVEMENTS as any[])?.length ?? 0;
+        const achCount = (data.ACHIEVEMENTS as any[])?.length ?? 0;
         console.log(`[App] DataService loaded — professors:${profCount} faculties:${facCount} departments:${deptCount} achievements:${achCount}`);
 
         // Guard: only update state when data is actually present — never wipe with []
-        applyIfPresent(data.FACULTIES    as Faculty[]     | undefined, setFaculties);
-        applyIfPresent(data.DEPARTMENTS  as Department[]  | undefined, setDepartments);
-        applyIfPresent(data.PROFESSORS   as Professor[]   | undefined, setProfessors);
+        applyIfPresent(data.FACULTIES as Faculty[] | undefined, setFaculties);
+        applyIfPresent(data.DEPARTMENTS as Department[] | undefined, setDepartments);
+        applyIfPresent(data.PROFESSORS as Professor[] | undefined, setProfessors);
         applyIfPresent(data.ACHIEVEMENTS as Achievement[] | undefined, setAchievements);
-        applyIfPresent(data.PLANS        as Plan[]        | undefined, setPlans);
-        applyIfPresent(data.PROJECTS     as Project[]     | undefined, setProjects);
+        applyIfPresent(data.PLANS as Plan[] | undefined, setPlans);
+        applyIfPresent(data.PROJECTS as Project[] | undefined, setProjects);
         applyIfPresent(data.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
-        if (data.DIVISIONS)     setDivisions((data.DIVISIONS    as Division[]) || CONSTANTS.DIVISIONS);
-        if (data.POSITIONS)     setPositions((data.POSITIONS    as string[])   || CONSTANTS.POSITIONS);
+        if (data.DIVISIONS) setDivisions((data.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
+        if (data.POSITIONS) setPositions((data.POSITIONS as string[]) || CONSTANTS.POSITIONS);
         if (data.SCORING_SYSTEM) setScoringSystem((data.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-        if (data.USERS)         setUsers(stripUserSecrets((data.USERS as User[]) || CONSTANTS.USERS) as User[]);
+        if (data.USERS) setUsers(stripUserSecrets((data.USERS as User[]) || CONSTANTS.USERS) as User[]);
 
         // ⚠ Track PER TABLE which ones have data — NOT a single global flag
         // This prevents the case where faculties loaded but professors didn't,
         // causing app_state professors to be wrongly skipped.
         relationalLoaded = {
-          faculties:     facCount  > 0,
-          departments:   deptCount > 0,
-          professors:    profCount > 0,
-          achievements:  achCount  > 0,
-          plans:         ((data.PLANS as any[])?.length ?? 0) > 0,
-          projects:      ((data.PROJECTS as any[])?.length ?? 0) > 0,
-          thesisDefenses:((data.THESIS_DEFENSES as any[])?.length ?? 0) > 0,
+          faculties: facCount > 0,
+          departments: deptCount > 0,
+          professors: profCount > 0,
+          achievements: achCount > 0,
+          plans: ((data.PLANS as any[])?.length ?? 0) > 0,
+          projects: ((data.PROJECTS as any[])?.length ?? 0) > 0,
+          thesisDefenses: ((data.THESIS_DEFENSES as any[])?.length ?? 0) > 0,
         };
       } catch (error: any) {
         if (cancelled) return;
@@ -258,7 +258,7 @@ function App() {
       // Only use app_state blob to SUPPLEMENT relational data, not overwrite it.
       // If relational tables already loaded data, skip overwriting arrays.
       try {
-        const remoteState   = await SupabaseState.load();
+        const remoteState = await SupabaseState.load();
         const fallbackState = SupabaseState.loadLocal();
         if (cancelled) return;
 
@@ -266,17 +266,17 @@ function App() {
 
         if (appState) {
           skipInitialRemoteSave.current = source !== 'local';
-          forceNextRemoteSave.current   = source === 'local';
+          forceNextRemoteSave.current = source === 'local';
 
           // Apply app_state arrays ONLY for tables that Supabase returned 0 rows
           // This correctly handles: faculties loaded but professors didn't
-          if (!relationalLoaded.faculties)     applyIfPresent(appState.FACULTIES      as Faculty[]      | undefined, setFaculties);
-          if (!relationalLoaded.departments)   applyIfPresent(appState.DEPARTMENTS    as Department[]   | undefined, setDepartments);
-          if (!relationalLoaded.professors)    applyIfPresent(appState.PROFESSORS     as Professor[]    | undefined, setProfessors);
-          if (!relationalLoaded.achievements)  applyIfPresent(appState.ACHIEVEMENTS   as Achievement[]  | undefined, setAchievements);
-          if (!relationalLoaded.plans)         applyIfPresent(appState.PLANS          as Plan[]         | undefined, setPlans);
-          if (!relationalLoaded.projects)      applyIfPresent(appState.PROJECTS       as Project[]      | undefined, setProjects);
-          if (!relationalLoaded.thesisDefenses)applyIfPresent(appState.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
+          if (!relationalLoaded.faculties) applyIfPresent(appState.FACULTIES as Faculty[] | undefined, setFaculties);
+          if (!relationalLoaded.departments) applyIfPresent(appState.DEPARTMENTS as Department[] | undefined, setDepartments);
+          if (!relationalLoaded.professors) applyIfPresent(appState.PROFESSORS as Professor[] | undefined, setProfessors);
+          if (!relationalLoaded.achievements) applyIfPresent(appState.ACHIEVEMENTS as Achievement[] | undefined, setAchievements);
+          if (!relationalLoaded.plans) applyIfPresent(appState.PLANS as Plan[] | undefined, setPlans);
+          if (!relationalLoaded.projects) applyIfPresent(appState.PROJECTS as Project[] | undefined, setProjects);
+          if (!relationalLoaded.thesisDefenses) applyIfPresent(appState.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
 
           const missingTables = Object.entries(relationalLoaded)
             .filter(([, v]) => !v).map(([k]) => k);
@@ -287,22 +287,22 @@ function App() {
           }
 
           // Always apply config fields (not arrays) from app_state
-          if (appState.DIVISIONS)      setDivisions((appState.DIVISIONS    as Division[]) || CONSTANTS.DIVISIONS);
-          if (appState.POSITIONS)      setPositions((appState.POSITIONS    as string[])   || CONSTANTS.POSITIONS);
+          if (appState.DIVISIONS) setDivisions((appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS);
+          if (appState.POSITIONS) setPositions((appState.POSITIONS as string[]) || CONSTANTS.POSITIONS);
           if (appState.SCORING_SYSTEM) setScoringSystem((appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM);
-          if (appState.USERS)          setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
+          if (appState.USERS) setUsers(stripUserSecrets((appState.USERS as User[]) || CONSTANTS.USERS) as User[]);
 
           lastSavedStateRef.current = serializeState(
-            (appState.FACULTIES      as Faculty[])      || CONSTANTS.FACULTIES,
-            (appState.DEPARTMENTS    as Department[])   || CONSTANTS.DEPARTMENTS,
-            (appState.DIVISIONS      as Division[])     || CONSTANTS.DIVISIONS,
-            (appState.POSITIONS      as string[])       || CONSTANTS.POSITIONS,
-            (appState.PROJECTS       as Project[])      || CONSTANTS.PROJECTS,
-            (appState.PROFESSORS     as Professor[])    || CONSTANTS.PROFESSORS,
-            (appState.PLANS          as Plan[])         || CONSTANTS.PLANS,
-            (appState.ACHIEVEMENTS   as Achievement[])  || CONSTANTS.ACHIEVEMENTS,
-            (appState.SCORING_SYSTEM as ScoringSystem)  || CONSTANTS.SCORING_SYSTEM,
-            (appState.USERS          as User[])         || CONSTANTS.USERS,
+            (appState.FACULTIES as Faculty[]) || CONSTANTS.FACULTIES,
+            (appState.DEPARTMENTS as Department[]) || CONSTANTS.DEPARTMENTS,
+            (appState.DIVISIONS as Division[]) || CONSTANTS.DIVISIONS,
+            (appState.POSITIONS as string[]) || CONSTANTS.POSITIONS,
+            (appState.PROJECTS as Project[]) || CONSTANTS.PROJECTS,
+            (appState.PROFESSORS as Professor[]) || CONSTANTS.PROFESSORS,
+            (appState.PLANS as Plan[]) || CONSTANTS.PLANS,
+            (appState.ACHIEVEMENTS as Achievement[]) || CONSTANTS.ACHIEVEMENTS,
+            (appState.SCORING_SYSTEM as ScoringSystem) || CONSTANTS.SCORING_SYSTEM,
+            (appState.USERS as User[]) || CONSTANTS.USERS,
             (appState.THESIS_DEFENSES as ThesisDefense[]) || CONSTANTS.THESIS_DEFENSES
           );
         }
@@ -316,14 +316,14 @@ function App() {
           const localFallback = SupabaseState.loadLocal();
           if (localFallback && !cancelled) {
             skipInitialRemoteSave.current = false;
-            forceNextRemoteSave.current   = true;
+            forceNextRemoteSave.current = true;
             console.info('[App] Using localStorage as final fallback');
-            applyIfPresent(localFallback.FACULTIES      as Faculty[]      | undefined, setFaculties);
-            applyIfPresent(localFallback.DEPARTMENTS    as Department[]   | undefined, setDepartments);
-            applyIfPresent(localFallback.PROFESSORS     as Professor[]    | undefined, setProfessors);
-            applyIfPresent(localFallback.ACHIEVEMENTS   as Achievement[]  | undefined, setAchievements);
-            applyIfPresent(localFallback.PLANS          as Plan[]         | undefined, setPlans);
-            applyIfPresent(localFallback.PROJECTS       as Project[]      | undefined, setProjects);
+            applyIfPresent(localFallback.FACULTIES as Faculty[] | undefined, setFaculties);
+            applyIfPresent(localFallback.DEPARTMENTS as Department[] | undefined, setDepartments);
+            applyIfPresent(localFallback.PROFESSORS as Professor[] | undefined, setProfessors);
+            applyIfPresent(localFallback.ACHIEVEMENTS as Achievement[] | undefined, setAchievements);
+            applyIfPresent(localFallback.PLANS as Plan[] | undefined, setPlans);
+            applyIfPresent(localFallback.PROJECTS as Project[] | undefined, setProjects);
             applyIfPresent(localFallback.THESIS_DEFENSES as ThesisDefense[] | undefined, setThesisDefenses);
           }
         }
@@ -526,7 +526,7 @@ function App() {
       if (!cancelled) setUser(guestUser);
     });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -621,70 +621,70 @@ function App() {
         return <RatingsPage data={processedData} type="department" />;
       case 'professors':
         return <ProfessorOqituvchilarPage
-                  user={user}
-                  data={processedData}
-                  achievements={achievements}
-                  setAchievements={setAchievements}
-                  professors={professors}
-                  setProfessors={setProfessors}
-                  plans={plans}
-                  setPlans={setPlans}
-                  selectedYear={selectedYear}
-                  canEdit={isSuperAdmin || user?.role === 'admin' || user?.role === 'kafedra_mudiri' || user?.role === 'kadrlar'}
-                  scoringSystem={scoringSystem}
-                  getScore={getScore}
-                  faculties={faculties}
-                  departments={departments}
-                  positions={positions}
-                  employmentTypes={CONSTANTS.EMPLOYMENT_TYPES}
-                  searchQuery={searchQuery}
-                  setSearchQuery={setSearchQuery}
-                  filters={filters}
-                  setFilters={setFilters}
-                  saveStatus={saveStatus}
-                  saveErrorMessage={saveErrorMessage}
-                />;
+          user={user}
+          data={processedData}
+          achievements={achievements}
+          setAchievements={setAchievements}
+          professors={professors}
+          setProfessors={setProfessors}
+          plans={plans}
+          setPlans={setPlans}
+          selectedYear={selectedYear}
+          canEdit={isSuperAdmin || user?.role === 'admin' || user?.role === 'kafedra_mudiri' || user?.role === 'kadrlar'}
+          scoringSystem={scoringSystem}
+          getScore={getScore}
+          faculties={faculties}
+          departments={departments}
+          positions={positions}
+          employmentTypes={CONSTANTS.EMPLOYMENT_TYPES}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={filters}
+          setFilters={setFilters}
+          saveStatus={saveStatus}
+          saveErrorMessage={saveErrorMessage}
+        />;
       case 'kpi':
         return <KPIPage
-                  user={user}
-                  isSuperAdmin={isSuperAdmin}
-                  professorsWithDetails={processedData.professorsWithDetails}
-                  departmentRatings={processedData.departmentRatings}
-                  facultyRatings={processedData.facultyRatings}
-                  achievements={achievements}
-                  getScore={getScore}
-                  selectedYear={selectedYear}
-                  scoringSystem={scoringSystem}
-                  faculties={faculties}
-                  departments={departments}
-                />;
+          user={user}
+          isSuperAdmin={isSuperAdmin}
+          professorsWithDetails={processedData.professorsWithDetails}
+          departmentRatings={processedData.departmentRatings}
+          facultyRatings={processedData.facultyRatings}
+          achievements={achievements}
+          getScore={getScore}
+          selectedYear={selectedYear}
+          scoringSystem={scoringSystem}
+          faculties={faculties}
+          departments={departments}
+        />;
       case 'potential':
         return <ScientificPotentialPage user={user} isSuperAdmin={isSuperAdmin} facultyRatings={processedData.facultyRatings} departmentRatings={processedData.departmentRatings} professorsWithDetails={processedData.professorsWithDetails} thesisDefenses={thesisDefenses} faculties={faculties} departments={departments} positions={positions} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} specialties={CONSTANTS.SPECIALTIES} defenseTypes={CONSTANTS.DEFENSE_TYPES} />;
       case 'projects':
         return <ScientificProjectsPage
-                  projects={projects}
-                  professors={processedData.allProfessors}
-                  faculties={faculties}
-                  departments={departments}
-                  projectTypes={CONSTANTS.PROJECT_TYPES}
-                  projectDirections={CONSTANTS.PROJECT_DIRECTIONS}
-                  projectLeaderPositions={CONSTANTS.PROJECT_LEADER_POSITIONS}
-                  projectDurations={CONSTANTS.PROJECT_DURATIONS}
-                  projectTypeCounts={processedData.projectTypeCounts}
-                />;
+          projects={projects}
+          professors={processedData.allProfessors}
+          faculties={faculties}
+          departments={departments}
+          projectTypes={CONSTANTS.PROJECT_TYPES}
+          projectDirections={CONSTANTS.PROJECT_DIRECTIONS}
+          projectLeaderPositions={CONSTANTS.PROJECT_LEADER_POSITIONS}
+          projectDurations={CONSTANTS.PROJECT_DURATIONS}
+          projectTypeCounts={processedData.projectTypeCounts}
+        />;
       case 'performance':
         return <PerformanceMonitoringPage
-                  user={user}
-                  isSuperAdmin={isSuperAdmin}
-                  professors={processedData.allProfessors}
-                  achievements={achievements}
-                  plans={plans}
-                  getScore={getScore}
-                  selectedYear={selectedYear}
-                  faculties={faculties}
-                  departments={departments}
-                  searchQuery={searchQuery}
-                />;
+          user={user}
+          isSuperAdmin={isSuperAdmin}
+          professors={processedData.allProfessors}
+          achievements={achievements}
+          plans={plans}
+          getScore={getScore}
+          selectedYear={selectedYear}
+          faculties={faculties}
+          departments={departments}
+          searchQuery={searchQuery}
+        />;
       case 'efficiency':
         return <EfficiencyPage
                   facultyRatings={processedData.facultyRatings}
@@ -695,28 +695,28 @@ function App() {
                 />;
       case 'management':
         return <DataManagementPage
-                  user={user}
-                  faculties={faculties} setFaculties={setFaculties}
-                  departments={departments} setDepartments={setDepartments}
-                  divisions={divisions} setDivisions={setDivisions}
-                  professors={professors} setProfessors={setProfessors}
-                  positions={positions} setPositions={setPositions}
-                  employmentTypes={CONSTANTS.EMPLOYMENT_TYPES}
-                  achievements={achievements} setAchievements={setAchievements}
-                  plans={plans} setPlans={setPlans}
-                  projects={projects} setProjects={setProjects}
-                  projectTypes={CONSTANTS.PROJECT_TYPES}
-                  projectDirections={CONSTANTS.PROJECT_DIRECTIONS}
-                  projectLeaderPositions={CONSTANTS.PROJECT_LEADER_POSITIONS}
-                  projectDurations={CONSTANTS.PROJECT_DURATIONS}
-                  scoringSystem={scoringSystem} setScoringSystem={setScoringSystem}
-                  users={users} setUsers={setUsers}
-                  searchQuery={searchQuery}
-                  thesisDefenses={thesisDefenses} setThesisDefenses={setThesisDefenses}
-                  specialties={CONSTANTS.SPECIALTIES}
-                  fieldsOfScience={CONSTANTS.FIELDS_OF_SCIENCE}
-                  defenseTypes={CONSTANTS.DEFENSE_TYPES}
-                />;
+          user={user}
+          faculties={faculties} setFaculties={setFaculties}
+          departments={departments} setDepartments={setDepartments}
+          divisions={divisions} setDivisions={setDivisions}
+          professors={professors} setProfessors={setProfessors}
+          positions={positions} setPositions={setPositions}
+          employmentTypes={CONSTANTS.EMPLOYMENT_TYPES}
+          achievements={achievements} setAchievements={setAchievements}
+          plans={plans} setPlans={setPlans}
+          projects={projects} setProjects={setProjects}
+          projectTypes={CONSTANTS.PROJECT_TYPES}
+          projectDirections={CONSTANTS.PROJECT_DIRECTIONS}
+          projectLeaderPositions={CONSTANTS.PROJECT_LEADER_POSITIONS}
+          projectDurations={CONSTANTS.PROJECT_DURATIONS}
+          scoringSystem={scoringSystem} setScoringSystem={setScoringSystem}
+          users={users} setUsers={setUsers}
+          searchQuery={searchQuery}
+          thesisDefenses={thesisDefenses} setThesisDefenses={setThesisDefenses}
+          specialties={CONSTANTS.SPECIALTIES}
+          fieldsOfScience={CONSTANTS.FIELDS_OF_SCIENCE}
+          defenseTypes={CONSTANTS.DEFENSE_TYPES}
+        />;
       default:
         return <GeneralStatisticsPage data={processedData} faculties={faculties} departments={departments} professors={processedData.allProfessors} achievements={achievements} scoringSystem={scoringSystem} selectedYear={selectedYear} plans={plans} thesisDefenses={thesisDefenses} />;
     }
