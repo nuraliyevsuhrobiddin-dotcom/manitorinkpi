@@ -21,8 +21,9 @@ export interface RegisterCredentials {
   username: string;
   email: string;
   password: string;
-  role?: 'admin' | 'guest';
+  role?: string;
   departmentId?: number | null;
+  facultyId?: number | null;
   fullName?: string;
 }
 
@@ -102,15 +103,19 @@ const toAppUser = (authUser: SupabaseAuthUser): User => {
     ''
   ).toLowerCase();
 
-  let role: 'superadmin' | 'admin' | 'guest' = 'guest';
+  let role: string = 'guest';
   if (metadataRole === 'superadmin' || (email.length > 0 && adminEmails.has(email))) {
     role = 'superadmin';
-  } else if (metadataRole === 'admin' || isAdminUser(authUser)) {
+  } else if (metadataRole) {
+    role = metadataRole;
+  } else if (isAdminUser(authUser)) {
     role = 'admin';
   }
 
   const rawDeptId = authUser.user_metadata?.departmentId || authUser.app_metadata?.departmentId;
   const departmentId = rawDeptId ? Number(rawDeptId) : null;
+  const rawFacultyId = authUser.user_metadata?.facultyId || authUser.app_metadata?.facultyId;
+  const facultyId = rawFacultyId ? Number(rawFacultyId) : null;
   const fullName = String(authUser.user_metadata?.full_name || authUser.user_metadata?.fullName || authUser.user_metadata?.username || email.split('@')[0] || 'Foydalanuvchi');
 
   return {
@@ -120,6 +125,7 @@ const toAppUser = (authUser: SupabaseAuthUser): User => {
     fullName,
     role,
     departmentId,
+    facultyId,
   };
 };
 
@@ -266,7 +272,7 @@ class SupabaseAuthProvider implements AuthProvider {
     return appUser;
   }
 
-  async register({ username, email, password, role = 'admin', departmentId, fullName }: RegisterCredentials): Promise<{ user: User | null; error?: string }> {
+  async register({ username, email, password, role = 'admin', departmentId, facultyId, fullName }: RegisterCredentials): Promise<{ user: User | null; error?: string }> {
     const cleanEmail = email.trim().toLowerCase();
     if (!supabaseUrl || !supabaseAnonKey) {
       return { user: null, error: "Supabase sozlamalari topilmadi." };
@@ -287,6 +293,7 @@ class SupabaseAuthProvider implements AuthProvider {
             full_name: fullName || username.trim(),
             role,
             departmentId: departmentId || null,
+            facultyId: facultyId || null,
           },
         }),
       });
@@ -304,7 +311,29 @@ class SupabaseAuthProvider implements AuthProvider {
       const session = (await response.json()) as SupabaseAuthSession;
       if (session && session.access_token) {
         this.saveSession(session);
-        return { user: toAppUser(session.user) };
+        const appUser = toAppUser(session.user);
+        // Also register in app_users table asynchronously
+        try {
+          fetch(`${supabaseUrl}/rest/v1/app_users`, {
+            method: 'POST',
+            headers: {
+              apikey: supabaseAnonKey,
+              Authorization: `Bearer ${session.access_token}`,
+              'Content-Type': 'application/json',
+              Prefer: 'resolution=merge-duplicates',
+            },
+            body: JSON.stringify({
+              id: appUser.id,
+              email: appUser.email,
+              full_name: appUser.fullName,
+              role: appUser.role,
+              department_id: appUser.departmentId,
+              faculty_id: appUser.facultyId,
+            }),
+          }).catch(console.warn);
+        } catch {}
+
+        return { user: appUser };
       }
 
       return { user: null, error: "Ro'yxatdan o'tildi! Tizimga kiring." };

@@ -206,7 +206,7 @@ const toProject = (row: Record<string, unknown>): Project => ({
 
 const toUser = (row: Record<string, unknown>): User => {
   const email = normalizeString(row.email);
-  const role = row.role === 'superadmin' || row.role === 'admin' ? row.role : 'guest';
+  const role = normalizeString(row.role) || 'guest';
   return {
     id: normalizeString(row.id),
     username: email.split('@')[0] || email,
@@ -214,6 +214,7 @@ const toUser = (row: Record<string, unknown>): User => {
     fullName: normalizeString(row.full_name ?? row.fullName) || email,
     role,
     departmentId: row.department_id != null ? Number(row.department_id) : null,
+    facultyId: row.faculty_id != null ? Number(row.faculty_id) : null,
   };
 };
 
@@ -237,6 +238,7 @@ const toAppUserRow = (user: User) => ({
   full_name: user.fullName,
   role: user.role,
   department_id: user.departmentId ?? null,
+  faculty_id: user.facultyId ?? null,
 });
 
 const toThesisDefense = (row: Record<string, unknown>): ThesisDefense => ({

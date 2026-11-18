@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar, LogIn, LogOut, Menu, Shield, User as UserIcon, Sparkles } from 'lucide-react';
+import { getRoleMeta } from '../utils/roles';
 
 type HeaderProps = {
   availableReportYears: number[];
@@ -20,9 +21,9 @@ export const Header: React.FC<HeaderProps> = ({
   selectedYear,
   user,
 }) => {
+  const roleMeta = getRoleMeta(user?.role);
   const isSuperAdmin = user?.role === 'superadmin';
-  const isDeptAdmin = user?.role === 'admin';
-  const isLoggedIn = isSuperAdmin || isDeptAdmin;
+  const isLoggedIn = Boolean(user && user.role && user.role !== 'guest');
 
   return (
     <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-all">
@@ -69,14 +70,12 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center space-x-3">
               <div className="hidden sm:flex flex-col text-right">
                 <span className="font-bold text-xs md:text-sm text-slate-900 dark:text-slate-100">
-                  {user.fullName || user.username}
+                  {user?.fullName || user?.username}
                 </span>
                 <span className="text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 flex items-center justify-end gap-1">
-                  {isSuperAdmin ? (
-                    <>👑 Super Admin</>
-                  ) : (
-                    <>🏢 {user.departmentName || "Bo'lim Admini"}</>
-                  )}
+                  <span>{roleMeta.icon}</span>
+                  <span>{roleMeta.label}</span>
+                  {user?.departmentName && <span className="text-slate-400">({user.departmentName})</span>}
                 </span>
               </div>
 

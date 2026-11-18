@@ -120,11 +120,17 @@ create table if not exists public.app_users (
   id            uuid        primary key references auth.users(id) on delete cascade,
   email         text        not null unique,
   full_name     text,
-  role          text        not null check (role in ('admin', 'superadmin', 'guest')),
+  role          text        not null check (role in ('admin', 'superadmin', 'guest', 'dekan', 'kafedra_mudiri', 'ilmiy_bolim', 'buxgalter', 'kadrlar', 'oqituvchi')),
   department_id bigint      references public.departments(id) on delete set null,
+  faculty_id    bigint      references public.faculties(id) on delete set null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
+
+-- Migratsiyalar (agar jadval oldin yaratilgan bo'lsa)
+alter table public.app_users drop constraint if exists app_users_role_check;
+alter table public.app_users add constraint app_users_role_check check (role in ('admin', 'superadmin', 'guest', 'dekan', 'kafedra_mudiri', 'ilmiy_bolim', 'buxgalter', 'kadrlar', 'oqituvchi'));
+alter table public.app_users add column if not exists faculty_id bigint references public.faculties(id) on delete set null;
 
 -- ─── Indexes ─────────────────────────────────────────────────
 
@@ -220,7 +226,7 @@ as $$
   select coalesce(
     -- Check 1: app_metadata.role (set via service-role API or SQL)
     lower(coalesce(auth.jwt() -> 'app_metadata' ->> 'role', ''))
-      = any (array['admin', 'superadmin'])
+      = any (array['admin', 'superadmin', 'dekan', 'kafedra_mudiri', 'ilmiy_bolim', 'buxgalter', 'kadrlar'])
     -- Check 2: JWT email whitelist (always reliable — no table lookup)
     or lower(coalesce(auth.jwt() ->> 'email', ''))
       = any (array['suhrobiddinnuraliyev04@gmail.com'])
@@ -229,7 +235,7 @@ as $$
       select 1
       from   public.app_users
       where  id   = auth.uid()
-        and  role in ('admin', 'superadmin')
+        and  role in ('admin', 'superadmin', 'dekan', 'kafedra_mudiri', 'ilmiy_bolim', 'buxgalter', 'kadrlar')
     ),
     false
   );

@@ -95,9 +95,11 @@ export interface User {
   username: string;
   email?: string;
   fullName?: string;
-  role: 'superadmin' | 'admin' | 'guest';
+  role: string;
   departmentId?: number | null;
+  facultyId?: number | null;
   departmentName?: string;
+  facultyName?: string;
 }
 
 export interface ScoringCriterion {

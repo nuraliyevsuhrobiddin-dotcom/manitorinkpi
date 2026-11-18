@@ -18,6 +18,21 @@ export const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achiev
   const [filtersVisible, setFiltersVisible] = useState(false);
   const pageSize = 10;
 
+  const isKafedraAdmin = (user?.role === 'kafedra_mudiri' || user?.role === 'admin') && Boolean(user?.departmentId);
+  const isDekan = user?.role === 'dekan' && Boolean(user?.facultyId);
+
+  useEffect(() => {
+    if (isKafedraAdmin && user.departmentId) {
+      setSelectedDepartment(String(user.departmentId));
+      const parentDept = departments.find(d => d.id === user.departmentId);
+      if (parentDept?.facultyId) {
+        setSelectedFaculty(String(parentDept.facultyId));
+      }
+    } else if (isDekan && user.facultyId) {
+      setSelectedFaculty(String(user.facultyId));
+    }
+  }, [isKafedraAdmin, isDekan, user?.departmentId, user?.facultyId, departments]);
+
   const filteredDepartments = useMemo(() => {
     if (!selectedFaculty) return departments;
     return departments.filter(d => d.facultyId === Number(selectedFaculty));
@@ -253,7 +268,8 @@ export const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achiev
                   <select
                     value={selectedFaculty}
                     onChange={e => { setSelectedFaculty(e.target.value); setSelectedDepartment(''); }}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white border"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white border disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    disabled={isKafedraAdmin || isDekan}
                   >
                     <option value="">Barcha fakultetlar</option>
                     {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -264,8 +280,8 @@ export const ProfessorOqituvchilarPage: React.FC<{ user: User, data: any, achiev
                   <select
                     value={selectedDepartment}
                     onChange={e => setSelectedDepartment(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white border"
-                    disabled={!selectedFaculty && filteredDepartments.length !== departments.length}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 bg-white border disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    disabled={isKafedraAdmin || (!selectedFaculty && filteredDepartments.length !== departments.length)}
                   >
                     <option value="">Barcha kafedralar</option>
                     {filteredDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}

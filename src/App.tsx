@@ -25,6 +25,7 @@ import { PerformanceMonitoringPage } from './pages/PerformanceMonitoringPage';
 import { EfficiencyPage } from './pages/EfficiencyPage';
 import { DataManagementPage } from './pages/DataManagementPage';
 import { LoginModal } from './components/modals/LoginModal';
+import { getAllowedViewsForRole, getRoleMeta } from './utils/roles';
 
 const REPORT_YEAR_STORAGE_KEY = 'kpi_selected_report_year';
 
@@ -40,6 +41,19 @@ const VALID_VIEWS = new Set([
   'efficiency',
   'management',
 ]);
+
+const ALL_NAV_ITEMS: SidebarNavItem[] = [
+  { id: 'dashboard', label: 'Umumiy statistika', icon: LayoutDashboard },
+  { id: 'faculties', label: 'Fakultetlar', icon: Building },
+  { id: 'departments', label: 'Kafedralar', icon: BarChart3 },
+  { id: 'professors', label: 'Professor-o\'qituvchilar', icon: Users },
+  { id: 'kpi', label: 'KPI', icon: Target },
+  { id: 'potential', label: 'Ilmiy salohiyat', icon: Star },
+  { id: 'projects', label: 'Loyiha va Startaplar', icon: Rocket },
+  { id: 'performance', label: 'Monitoring', icon: TrendingUp },
+  { id: 'efficiency', label: 'Samaradorlik', icon: TrendingDown },
+  { id: 'management', label: 'Boshqarish', icon: Settings },
+];
 
 const getViewFromHash = (): string => {
   const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
@@ -62,8 +76,13 @@ function App() {
     return Number.isFinite(savedYear) && savedYear > 0 ? savedYear : 2026;
   });
 
-  // Permissions
+  // Permissions and allowed views
   const isSuperAdmin = user?.role === 'superadmin';
+  const allowedViews = useMemo(() => getAllowedViewsForRole(user?.role), [user?.role]);
+
+  const navItems = useMemo(() => {
+    return ALL_NAV_ITEMS.filter(item => allowedViews.includes(item.id));
+  }, [allowedViews]);
 
   const handleNavigate = useCallback((viewId: string) => {
     setActiveView(viewId);
@@ -74,18 +93,32 @@ function App() {
   useEffect(() => {
     const handleHashChange = () => {
       const v = getViewFromHash();
-      setActiveView(v);
+      if (allowedViews.includes(v)) {
+        setActiveView(v);
+      } else {
+        const defaultView = getRoleMeta(user?.role).defaultView;
+        setActiveView(defaultView);
+        window.location.hash = `#/${defaultView}`;
+      }
     };
 
     if (!window.location.hash) {
-      window.location.hash = '#/dashboard';
+      const initialView = allowedViews.includes(activeView) ? activeView : getRoleMeta(user?.role).defaultView;
+      window.location.hash = `#/${initialView}`;
     } else {
       handleHashChange();
     }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+  }, [allowedViews, user?.role, activeView]);
+
+  useEffect(() => {
+    if (!allowedViews.includes(activeView)) {
+      const target = getRoleMeta(user?.role).defaultView;
+      handleNavigate(target);
+    }
+  }, [allowedViews, activeView, user?.role, handleNavigate]);
 
   // Ma'lumotlarni state'ga ko'chirish
   const [users, setUsers] = useState<User[]>(CONSTANTS.USERS);
@@ -501,13 +534,16 @@ function App() {
     const authenticatedUser = await AuthService.login({ username, password });
     if (authenticatedUser) {
       const deptObj = departments.find(d => d.id === authenticatedUser.departmentId);
+      const facObj = faculties.find(f => f.id === authenticatedUser.facultyId);
       const userWithDept = {
         ...authenticatedUser,
         departmentName: deptObj?.name,
+        facultyName: facObj?.name,
       };
 
       setUser(userWithDept as User);
-      handleNavigate('dashboard');
+      const defaultView = getRoleMeta(userWithDept.role).defaultView;
+      handleNavigate(defaultView);
       setLoginError('');
       setLoginModalOpen(false);
 
@@ -526,8 +562,15 @@ function App() {
       );
       if (localFound) {
         const deptObj = departments.find(d => d.id === localFound.departmentId);
-        setUser({ ...localFound, departmentName: deptObj?.name });
-        handleNavigate('dashboard');
+        const facObj = faculties.find(f => f.id === localFound.facultyId);
+        const userWithDept = {
+          ...localFound,
+          departmentName: deptObj?.name,
+          facultyName: facObj?.name,
+        };
+        setUser(userWithDept as User);
+        const defaultView = getRoleMeta(userWithDept.role).defaultView;
+        handleNavigate(defaultView);
         setLoginError('');
         setLoginModalOpen(false);
       } else {
@@ -548,22 +591,27 @@ function App() {
     email: string;
     password: string;
     fullName: string;
-    departmentId: number | null;
+    role?: string;
+    departmentId?: number | null;
+    facultyId?: number | null;
   }): Promise<{ success: boolean; message?: string }> => {
     try {
       const res = await AuthService.register({
         ...credentials,
-        role: 'admin',
+        role: credentials.role || 'kafedra_mudiri',
       });
 
       if (res.user) {
         const deptObj = departments.find(d => d.id === credentials.departmentId);
+        const facObj = faculties.find(f => f.id === credentials.facultyId);
         const userWithDept = {
           ...res.user,
           departmentName: deptObj?.name,
+          facultyName: facObj?.name,
         };
         setUser(userWithDept as User);
-        handleNavigate('dashboard');
+        const defaultView = getRoleMeta(userWithDept.role).defaultView;
+        handleNavigate(defaultView);
         setLoginModalOpen(false);
         setLoginError('');
         return { success: true, message: "Ro'yxatdan muvaffaqiyatli o'tdingiz!" };
@@ -608,7 +656,30 @@ function App() {
       case 'departments':
         return <RatingsPage data={processedData} type="department" />;
       case 'professors':
-        return <ProfessorOqituvchilarPage user={user} data={processedData} achievements={achievements} setAchievements={setAchievements} professors={professors} setProfessors={setProfessors} plans={plans} setPlans={setPlans} selectedYear={selectedYear} canEdit={isSuperAdmin || user?.role === 'admin'} scoringSystem={scoringSystem} getScore={getScore} faculties={faculties} departments={departments} positions={positions} employmentTypes={CONSTANTS.EMPLOYMENT_TYPES} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filters={filters} setFilters={setFilters} saveStatus={saveStatus} saveErrorMessage={saveErrorMessage} />;
+        return <ProfessorOqituvchilarPage
+                  user={user}
+                  data={processedData}
+                  achievements={achievements}
+                  setAchievements={setAchievements}
+                  professors={professors}
+                  setProfessors={setProfessors}
+                  plans={plans}
+                  setPlans={setPlans}
+                  selectedYear={selectedYear}
+                  canEdit={isSuperAdmin || user?.role === 'admin' || user?.role === 'kafedra_mudiri' || user?.role === 'kadrlar'}
+                  scoringSystem={scoringSystem}
+                  getScore={getScore}
+                  faculties={faculties}
+                  departments={departments}
+                  positions={positions}
+                  employmentTypes={CONSTANTS.EMPLOYMENT_TYPES}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  filters={filters}
+                  setFilters={setFilters}
+                  saveStatus={saveStatus}
+                  saveErrorMessage={saveErrorMessage}
+                />;
       case 'kpi':
         return <KPIPage
                   user={user}
@@ -688,22 +759,6 @@ function App() {
 
   const appTitle = 'SHDPI';
 
-  let navItems: SidebarNavItem[] = [
-    { id: 'dashboard', label: 'Umumiy statistika', icon: LayoutDashboard },
-    { id: 'faculties', label: 'Fakultetlar', icon: Building },
-    { id: 'departments', label: 'Kafedralar', icon: BarChart3 },
-    { id: 'professors', label: 'Professor-o\'qituvchilar', icon: Users },
-    { id: 'kpi', label: 'KPI', icon: Target },
-    { id: 'potential', label: 'Ilmiy salohiyat', icon: Star },
-    { id: 'projects', label: 'Loyiha va Startaplar', icon: Rocket },
-    { id: 'performance', label: 'Monitoring', icon: TrendingUp },
-    { id: 'efficiency', label: 'Samaradorlik', icon: TrendingDown },
-  ];
-
-  if (isSuperAdmin) {
-    navItems.push({ id: 'management', label: 'Boshqarish', icon: Settings });
-  }
-
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
       <MobileMenu
@@ -768,6 +823,7 @@ function App() {
         onLogin={handleLogin}
         onRegister={handleRegister}
         departments={departments}
+        faculties={faculties}
         error={loginError}
       />
     </div>

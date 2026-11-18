@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogIn, UserPlus, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '../ui/Modal';
-import type { Department } from '../../types/kpi';
+import type { Department, Faculty } from '../../types/kpi';
 
 export const LoginModal: React.FC<{
   open: boolean;
@@ -12,11 +12,14 @@ export const LoginModal: React.FC<{
     email: string;
     password: string;
     fullName: string;
-    departmentId: number | null;
+    role?: string;
+    departmentId?: number | null;
+    facultyId?: number | null;
   }) => Promise<{ success: boolean; message?: string }>;
   departments?: Department[];
+  faculties?: Faculty[];
   error: string;
-}> = ({ open, onClose, onLogin, onRegister, departments = [], error }) => {
+}> = ({ open, onClose, onLogin, onRegister, departments = [], faculties = [], error }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
 
   // Login form states
@@ -26,9 +29,11 @@ export const LoginModal: React.FC<{
   // Register form states
   const [regFullName, setRegFullName] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regRole, setRegRole] = useState('kafedra_mudiri');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regDeptId, setRegDeptId] = useState<number | string>('');
+  const [regFacultyId, setRegFacultyId] = useState<number | string>('');
 
   const [localError, setLocalError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -40,14 +45,16 @@ export const LoginModal: React.FC<{
       setPassword('');
       setRegFullName('');
       setRegEmail('');
+      setRegRole('kafedra_mudiri');
       setRegPassword('');
       setRegConfirmPassword('');
       setRegDeptId(departments[0]?.id || '');
+      setRegFacultyId(faculties[0]?.id || '');
       setLocalError('');
       setSuccessMessage('');
       setIsSubmitting(false);
     }
-  }, [open, departments]);
+  }, [open, departments, faculties]);
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,14 +91,17 @@ export const LoginModal: React.FC<{
 
     setIsSubmitting(true);
     const username = regEmail.split('@')[0] || regFullName.toLowerCase().replace(/\s+/g, '_');
-    const deptIdNum = regDeptId ? Number(regDeptId) : null;
+    const deptIdNum = (regRole === 'kafedra_mudiri' || regRole === 'oqituvchi') && regDeptId ? Number(regDeptId) : null;
+    const facultyIdNum = regRole === 'dekan' && regFacultyId ? Number(regFacultyId) : null;
 
     const res = await onRegister({
       username,
       email: regEmail.trim(),
       password: regPassword,
       fullName: regFullName.trim(),
+      role: regRole,
       departmentId: deptIdNum,
+      facultyId: facultyIdNum,
     });
 
     setIsSubmitting(false);
@@ -239,21 +249,63 @@ export const LoginModal: React.FC<{
 
           <div>
             <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
-              Kafedrangiz
+              Lavozim / Rolingiz
             </label>
             <select
-              value={regDeptId}
-              onChange={(e) => setRegDeptId(e.target.value)}
-              className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              value={regRole}
+              onChange={(e) => setRegRole(e.target.value)}
+              className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 cursor-pointer font-medium"
             >
-              <option value="" disabled>Kafedrani tanlang</option>
-              {departments.map((dept) => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
-                </option>
-              ))}
+              <option value="kafedra_mudiri">🏢 Kafedra Mudiri</option>
+              <option value="oqituvchi">🎓 Professor-o'qituvchi</option>
+              <option value="dekan">🏛️ Fakultet Dekani</option>
+              <option value="ilmiy_bolim">🔬 Ilmiy Bo'lim / Kotib</option>
+              <option value="buxgalter">💼 Moliya / Buxgalteriya</option>
+              <option value="kadrlar">👥 Kadrlar Bo'limi (HR)</option>
             </select>
           </div>
+
+          {regRole === 'dekan' && faculties.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Fakultetingiz
+              </label>
+              <select
+                value={regFacultyId}
+                onChange={(e) => setRegFacultyId(e.target.value)}
+                className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                required
+              >
+                <option value="" disabled>Fakultetni tanlang</option>
+                {faculties.map((fac) => (
+                  <option key={fac.id} value={fac.id}>
+                    {fac.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {(regRole === 'kafedra_mudiri' || regRole === 'oqituvchi') && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide mb-1">
+                Kafedrangiz
+              </label>
+              <select
+                value={regDeptId}
+                onChange={(e) => setRegDeptId(e.target.value)}
+                className="block w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-3.5 py-2 text-xs focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                required
+              >
+                <option value="" disabled>Kafedrani tanlang</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>

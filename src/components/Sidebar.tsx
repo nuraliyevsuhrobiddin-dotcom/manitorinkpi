@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Sparkles, Shield, User as UserIcon } from 'lucide-react';
+import { getRoleMeta } from '../utils/roles';
 
 export type SidebarNavItem = {
   id: string;
@@ -27,7 +28,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   user,
 }) => {
   const isSuperAdmin = user?.role === 'superadmin';
-  const isDeptAdmin = user?.role === 'admin';
+  const roleMeta = getRoleMeta(user?.role);
 
   return (
     <aside
@@ -102,19 +103,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {user && (
         <div className="p-4 border-t border-slate-800/80 bg-slate-950/60">
           <div className="flex items-center space-x-3 p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/50">
-            <div className={`p-2 rounded-lg flex-shrink-0 ${isSuperAdmin ? 'bg-purple-600/20 text-purple-400' : isDeptAdmin ? 'bg-blue-600/20 text-blue-400' : 'bg-slate-700 text-slate-300'}`}>
+            <div className={`p-2 rounded-lg flex-shrink-0 ${isSuperAdmin ? 'bg-purple-600/20 text-purple-400' : 'bg-indigo-600/20 text-indigo-400'}`}>
               {isSuperAdmin ? <Shield size={18} /> : <UserIcon size={18} />}
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-xs font-semibold text-white truncate">
                 {user.fullName || user.username}
               </span>
-              <span className="text-[11px] font-medium text-slate-400 truncate">
-                {isSuperAdmin
-                  ? "👑 Super Admin"
-                  : isDeptAdmin
-                  ? `🔑 ${user.departmentName || "Bo'lim Admini"}`
-                  : "Mehmon rejimi"}
+              <span className="text-[11px] font-medium text-slate-400 truncate flex items-center gap-1">
+                <span>{roleMeta.icon}</span>
+                <span>{roleMeta.label}</span>
+                {user.departmentName && (
+                  <span className="text-slate-500">({user.departmentName})</span>
+                )}
               </span>
             </div>
           </div>

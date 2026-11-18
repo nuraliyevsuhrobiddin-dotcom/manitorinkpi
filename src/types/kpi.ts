@@ -1,7 +1,15 @@
 import { CONSTANTS } from '../data.js';
+import type { UserRole } from '../utils/roles';
 
 // Ma'lumotlar tiplari
-export type User = typeof CONSTANTS.USERS[0] & { departmentId?: number };
+export type User = typeof CONSTANTS.USERS[0] & {
+  fullName?: string;
+  role: UserRole | string;
+  departmentId?: number | null;
+  facultyId?: number | null;
+  departmentName?: string;
+  facultyName?: string;
+};
 export type Professor = typeof CONSTANTS.PROFESSORS[0];
 
 // Approval status tipi

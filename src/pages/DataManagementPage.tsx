@@ -8,6 +8,7 @@ import type { User, Faculty, Department, Division, Professor, Achievement, Plan,
 import { getProfessorName } from '../utils/format';
 import { AuthService } from '../shared/services/authService';
 import { DataService } from '../shared/services/dataService';
+import { ROLE_DEFINITIONS, getRoleMeta } from '../utils/roles';
 
 export const DataManagementPage: React.FC<{
   user: User;
@@ -44,7 +45,7 @@ export const DataManagementPage: React.FC<{
   defenseTypes: string[];
 }> = ({ user, faculties, setFaculties, departments, setDepartments, divisions, setDivisions, professors, setProfessors, positions, setPositions, employmentTypes, achievements, setAchievements, plans, setPlans, projects, setProjects, projectTypes, projectDirections, projectLeaderPositions, projectDurations, scoringSystem, setScoringSystem, users, setUsers, searchQuery, thesisDefenses, setThesisDefenses, defenseTypes }) => {
 
-  const tabs = [
+  const allTabs = useMemo(() => [
     { id: 'faculties', label: 'Fakultetlar', icon: Building },
     { id: 'departments', label: 'Kafedralar', icon: GraduationCap },
     { id: 'divisions', label: 'Bo\'limlar', icon: BookCopy },
@@ -55,9 +56,30 @@ export const DataManagementPage: React.FC<{
     { id: 'criteria', label: 'Mezonlar', icon: ClipboardList },
     { id: 'users', label: 'Foydalanuvchilar', icon: UserCog },
     { id: 'approvals', label: 'Tasdiqlash', icon: CheckCircle2 },
-  ];
+  ], []);
 
-  const [activeTab, setActiveTab] = useState(tabs[0]?.id || '');
+  const tabs = useMemo(() => {
+    const role = (user?.role || 'guest').toLowerCase();
+    if (role === 'superadmin') return allTabs;
+    if (role === 'ilmiy_bolim') {
+      return allTabs.filter(t => ['approvals', 'projects', 'defenses', 'criteria'].includes(t.id));
+    }
+    if (role === 'kadrlar') {
+      return allTabs.filter(t => ['professors', 'positions', 'divisions', 'departments'].includes(t.id));
+    }
+    if (role === 'kafedra_mudiri' || role === 'admin') {
+      return allTabs.filter(t => ['professors'].includes(t.id));
+    }
+    return allTabs.filter(t => ['professors'].includes(t.id));
+  }, [user?.role, allTabs]);
+
+  const [activeTab, setActiveTab] = useState(tabs[0]?.id || 'professors');
+
+  React.useEffect(() => {
+    if (!tabs.some(t => t.id === activeTab)) {
+      setActiveTab(tabs[0]?.id || 'professors');
+    }
+  }, [tabs, activeTab]);
 
   // Form states
   const [facultyName, setFacultyName] = useState('');
@@ -80,7 +102,7 @@ export const DataManagementPage: React.FC<{
     councilNumber: '', defenseDate: ''
   });
   const [criterionForm, setCriterionForm] = useState({ type: '', subType: '', score: '', description: '' });
-  const [userForm, setUserForm] = useState({ username: '', fullName: '', email: '', password: '', role: 'admin', departmentId: '' });
+  const [userForm, setUserForm] = useState({ username: '', fullName: '', email: '', password: '', role: 'kafedra_mudiri', departmentId: '', facultyId: '' });
 
   // Form validation errors
   const [facultyErrors, setFacultyErrors] = useState<{ name?: string }>({});
@@ -91,7 +113,7 @@ export const DataManagementPage: React.FC<{
   const [projErrors, setProjErrors] = useState<{ name?: string; leaderName?: string; facultyId?: string; departmentId?: string; totalFunding?: string }>({});
   const [defenseErrors, setDefenseErrors] = useState<{ lastName?: string; firstName?: string; facultyId?: string; departmentId?: string; thesisTopic?: string }>({});
   const [criterionErrors, setCriterionErrors] = useState<{ type?: string; subType?: string; score?: string }>({});
-  const [userErrors, setUserErrors] = useState<{ username?: string; email?: string; password?: string; departmentId?: string; general?: string }>({});
+  const [userErrors, setUserErrors] = useState<{ username?: string; email?: string; password?: string; departmentId?: string; facultyId?: string; general?: string }>({});
 
   // Edit/Delete modals
   const [editFacultyModal, setEditFacultyModal] = useState<{ open: boolean, faculty: any }>({ open: false, faculty: null });
@@ -123,7 +145,7 @@ export const DataManagementPage: React.FC<{
   const [deleteCriterionModal, setDeleteCriterionModal] = useState<{ open: boolean, type: string, subType: string }>({ open: false, type: '', subType: '' });
   const [editCriterionTypeModal, setEditCriterionTypeModal] = useState<{ open: boolean, oldType: string, newType: string }>({ open: false, oldType: '', newType: '' });
 
-  const [editUserModal, setEditUserModal] = useState<{ open: boolean; user: any; role?: string; departmentId?: number | null }>({ open: false, user: null });
+  const [editUserModal, setEditUserModal] = useState<{ open: boolean; user: any; role?: string; departmentId?: number | null; facultyId?: number | null }>({ open: false, user: null });
   const [deleteUserModal, setDeleteUserModal] = useState<{ open: boolean, user: any }>({ open: false, user: null });
 
   const filteredFaculties = useMemo(() => faculties.filter(f => f.name.toLowerCase().includes(searchQuery.toLowerCase())), [faculties, searchQuery]);
@@ -427,14 +449,21 @@ export const DataManagementPage: React.FC<{
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    const errs: { username?: string; email?: string; password?: string; departmentId?: string } = {};
+    const errs: { username?: string; email?: string; password?: string; departmentId?: string; facultyId?: string } = {};
     if (!userForm.username.trim() && !userForm.fullName.trim()) errs.username = 'Foydalanuvchi nomi kiritilishi shart';
-    if (userForm.role === 'admin' && !userForm.departmentId) errs.departmentId = 'Bo\'limni tanlang';
+    if ((userForm.role === 'admin' || userForm.role === 'kafedra_mudiri' || userForm.role === 'oqituvchi') && !userForm.departmentId) {
+      errs.departmentId = 'Kafedrani tanlang';
+    }
+    if (userForm.role === 'dekan' && !userForm.facultyId) {
+      errs.facultyId = 'Fakultetni tanlang';
+    }
     if (Object.keys(errs).length) { setUserErrors(errs); return; }
     setUserErrors({});
 
     const deptIdNum = userForm.departmentId ? Number(userForm.departmentId) : null;
+    const facIdNum = userForm.facultyId ? Number(userForm.facultyId) : null;
     const deptObj = departments.find(d => d.id === deptIdNum);
+    const facObj = faculties.find(f => f.id === facIdNum);
 
     const baseUser: any = {
       username: userForm.username.trim() || userForm.fullName.trim(),
@@ -442,7 +471,9 @@ export const DataManagementPage: React.FC<{
       email: userForm.email.trim(),
       role: userForm.role,
       departmentId: deptIdNum,
+      facultyId: facIdNum,
       departmentName: deptObj?.name,
+      facultyName: facObj?.name,
     };
 
     if (userForm.email.trim() && userForm.password.trim()) {
@@ -451,8 +482,9 @@ export const DataManagementPage: React.FC<{
         fullName: baseUser.fullName,
         email: userForm.email.trim(),
         password: userForm.password.trim(),
-        role: baseUser.role === 'guest' ? 'guest' : 'admin',
+        role: baseUser.role,
         departmentId: deptIdNum,
+        facultyId: facIdNum,
       });
 
       if (!registered) {
@@ -476,21 +508,25 @@ export const DataManagementPage: React.FC<{
       setUsers((p: User[]) => [...p, { ...baseUser, id: Date.now() }]);
     }
 
-    setUserForm({ username: '', fullName: '', email: '', password: '', role: 'admin', departmentId: '' });
+    setUserForm({ username: '', fullName: '', email: '', password: '', role: 'kafedra_mudiri', departmentId: '', facultyId: '' });
   };
 
   const handleEditUser = async () => {
     if (!editUserModal.user) return;
     const targetUser = editUserModal.user;
     const updatedDeptId = editUserModal.departmentId !== undefined ? editUserModal.departmentId : targetUser.departmentId;
+    const updatedFacultyId = editUserModal.facultyId !== undefined ? editUserModal.facultyId : targetUser.facultyId;
     const updatedRole = editUserModal.role || targetUser.role;
     const deptObj = departments.find(d => d.id === updatedDeptId);
+    const facObj = faculties.find(f => f.id === updatedFacultyId);
 
     const updatedUser = {
       ...targetUser,
       role: updatedRole as any,
       departmentId: updatedDeptId,
+      facultyId: updatedFacultyId,
       departmentName: deptObj?.name,
+      facultyName: facObj?.name,
     };
 
     // Only real auth-backed accounts (string UUID id) have an app_users row to sync.
@@ -1103,14 +1139,32 @@ export const DataManagementPage: React.FC<{
                   <select
                     value={userForm.role}
                     onChange={e => setUserForm(p => ({...p, role: e.target.value}))}
-                    className="w-full p-2 bg-white border border-gray-300 rounded text-sm"
+                    className="w-full p-2 bg-white border border-gray-300 rounded text-sm cursor-pointer"
                   >
-                    <option value="admin">Bo'lim Admini (Kafedra mas'uli)</option>
-                    <option value="superadmin">Super Admin</option>
-                    <option value="guest">Mehmon</option>
+                    {Object.values(ROLE_DEFINITIONS).map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.icon} {r.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {userForm.role === 'admin' && (
+                {userForm.role === 'dekan' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Fakultet</label>
+                    <select
+                      value={userForm.facultyId}
+                      onChange={e => setUserForm(p => ({...p, facultyId: e.target.value}))}
+                      className={`w-full p-2 bg-white border rounded text-sm ${userErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                    >
+                      <option value="">-- Fakultetni tanlang --</option>
+                      {faculties.map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                    {userErrors.facultyId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.facultyId}</p>}
+                  </div>
+                )}
+                {(userForm.role === 'admin' || userForm.role === 'kafedra_mudiri' || userForm.role === 'oqituvchi') && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Bo'lim (Kafedra)</label>
                     <select
@@ -1136,40 +1190,39 @@ export const DataManagementPage: React.FC<{
             </Card>
 
             <Card className="lg:col-span-2">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Mavjud Foydalanuvchilar va Bo'lim Adminlari</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Mavjud Foydalanuvchilar va Adminlar</h3>
               <ul className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                 {filteredUsers.map((u: any) => {
                   const dept = departments.find(d => d.id === u.departmentId);
-                  const isSA = u.role === 'superadmin';
-                  const isDA = u.role === 'admin';
+                  const fac = faculties.find(f => f.id === u.facultyId);
+                  const roleMeta = getRoleMeta(u.role);
                   return (
                     <li key={u.id} className="p-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                       <div className="flex flex-col">
                         <div className="flex items-center space-x-2">
                           <span className="font-semibold text-gray-800 dark:text-gray-100">{u.fullName || u.username}</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            isSA
-                              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'
-                              : isDA
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                              : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
-                          }`}>
-                            {isSA ? '👑 Super Admin' : isDA ? "🔑 Bo'lim Admini" : 'Mehmon'}
+                          <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold border ${roleMeta.badge}`}>
+                            {roleMeta.icon} {roleMeta.label}
                           </span>
                         </div>
                         {u.email && <span className="text-xs text-gray-500 mt-0.5">{u.email}</span>}
-                        {isDA && (
+                        {dept && (
                           <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
-                            🏢 Biriktirilgan bo'lim: <strong>{dept?.name || u.departmentName || 'Biriktirilmagan'}</strong>
+                            🏢 Kafedra: <strong>{dept.name}</strong>
+                          </span>
+                        )}
+                        {fac && (
+                          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-1 flex items-center gap-1">
+                            🏛️ Fakultet: <strong>{fac.name}</strong>
                           </span>
                         )}
                       </div>
                       {u.id !== user.id && (
                         <div className="flex items-center space-x-2 self-end sm:self-center">
                           <button
-                            onClick={() => setEditUserModal({ open: true, user: u, role: u.role, departmentId: u.departmentId })}
+                            onClick={() => setEditUserModal({ open: true, user: u, role: u.role, departmentId: u.departmentId, facultyId: u.facultyId })}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded transition-colors"
-                            title="Tahrirlash va Bo'lim Tayinlash"
+                            title="Tahrirlash va Rol Tayinlash"
                           >
                             <Edit size={16} />
                           </button>
@@ -1196,16 +1249,33 @@ export const DataManagementPage: React.FC<{
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
                   <select
-                    value={editUserModal.role || editUserModal.user?.role || 'admin'}
+                    value={editUserModal.role || editUserModal.user?.role || 'kafedra_mudiri'}
                     onChange={e => setEditUserModal(p => ({ ...p, role: e.target.value }))}
-                    className="w-full p-2 border border-gray-300 rounded bg-white text-sm"
+                    className="w-full p-2 border border-gray-300 rounded bg-white text-sm cursor-pointer"
                   >
-                    <option value="superadmin">Super Admin</option>
-                    <option value="admin">Bo'lim Admini</option>
-                    <option value="guest">Mehmon</option>
+                    {Object.values(ROLE_DEFINITIONS).map(r => (
+                      <option key={r.id} value={r.id}>
+                        {r.icon} {r.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {(editUserModal.role || editUserModal.user?.role) === 'admin' && (
+                {(editUserModal.role || editUserModal.user?.role) === 'dekan' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktirilgan Fakultet</label>
+                    <select
+                      value={editUserModal.facultyId !== undefined ? (editUserModal.facultyId || '') : (editUserModal.user?.facultyId || '')}
+                      onChange={e => setEditUserModal(p => ({ ...p, facultyId: e.target.value ? Number(e.target.value) : null }))}
+                      className="w-full p-2 border border-gray-300 rounded bg-white text-sm"
+                    >
+                      <option value="">-- Fakultetni tanlang --</option>
+                      {faculties.map(f => (
+                        <option key={f.id} value={f.id}>{f.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {['admin', 'kafedra_mudiri', 'oqituvchi'].includes(editUserModal.role || editUserModal.user?.role) && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktirilgan Bo'lim (Kafedra)</label>
                     <select
