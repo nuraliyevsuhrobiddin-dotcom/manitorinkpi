@@ -1142,6 +1142,7 @@ export const DataManagementPage: React.FC<{
                             <th className="px-4 py-3">Mezon / Tur</th>
                             <th className="px-4 py-3 text-center">Soni</th>
                             <th className="px-4 py-3 text-right">Ball</th>
+                            <th className="px-4 py-3">Asoslovchi hujjat / Izoh</th>
                             <th className="px-4 py-3 text-center">Amallar</th>
                           </tr>
                         </thead>
@@ -1164,6 +1165,25 @@ export const DataManagementPage: React.FC<{
                                 <td className="px-4 py-3 text-center font-bold">{ach.count}</td>
                                 <td className="px-4 py-3 text-right font-extrabold text-indigo-600 dark:text-indigo-400">
                                   +{total.toFixed(2)}
+                                </td>
+                                <td className="px-4 py-3 max-w-xs">
+                                  {ach.documentUrl ? (
+                                    <a
+                                      href={ach.documentUrl.startsWith('http') ? ach.documentUrl : `https://${ach.documentUrl}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
+                                    >
+                                      🔗 Hujjatni ochish ↗
+                                    </a>
+                                  ) : (
+                                    <span className="text-xs text-slate-400 italic">Havola yo‘q</span>
+                                  )}
+                                  {ach.notes && (
+                                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 truncate" title={ach.notes}>
+                                      📝 {ach.notes}
+                                    </p>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                   <div className="flex justify-center gap-2">

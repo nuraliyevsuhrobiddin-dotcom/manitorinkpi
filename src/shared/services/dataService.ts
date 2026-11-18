@@ -187,6 +187,8 @@ const toAchievement = (row: Record<string, unknown>): Achievement => ({
   count: Number(row.count ?? 0),
   status: (row.status as any) || 'approved',
   rejectionNote: normalizeString(row.rejection_note ?? row.rejectionNote),
+  documentUrl: normalizeString(row.document_url ?? row.documentUrl),
+  notes: normalizeString(row.notes),
 });
 
 const toProject = (row: Record<string, unknown>): Project => ({

@@ -13,6 +13,8 @@ export type Achievement = typeof CONSTANTS.ACHIEVEMENTS[0] & {
   submittedBy?: number;   // user.id
   submittedAt?: string;   // ISO string
   rejectionNote?: string;
+  documentUrl?: string;   // Asoslovchi fayl/havola yoki DOI
+  notes?: string;         // Izoh / Maqola nomi / Sertifikat raqami
 };
 
 export type PlanItem = { type: string; subType: string; count: number };

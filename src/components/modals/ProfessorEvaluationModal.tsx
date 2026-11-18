@@ -36,22 +36,38 @@ export const ProfessorEvaluationModal: React.FC<{
     allSubTypes[type] = Object.keys(scoringSystem[type]);
   });
 
-  function getCount(type: string, subType: string) {
-    const found = localAchievements.find(a => a.type === type && a.subType === subType);
-    return found ? found.count : 0;
+
+  function getItem(type: string, subType: string) {
+    return localAchievements.find(a => a.type === type && a.subType === subType);
   }
 
-  function setCount(type: string, subType: string, count: number) {
+  function updateItem(type: string, subType: string, patch: Partial<Achievement>) {
     setLocalAchievements(prev => {
       const idx = prev.findIndex(a => a.type === type && a.subType === subType);
       if (idx !== -1) {
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], count };
+        updated[idx] = { ...updated[idx], ...patch };
         return updated;
       } else {
-        return [...prev, { id: Math.floor(Date.now() + Math.random() * 1000), professorId: professor.id, year, quarter, type, subType, count }];
+        return [
+          ...prev,
+          {
+            id: Math.floor(Date.now() + Math.random() * 1000),
+            professorId: professor.id,
+            year,
+            quarter,
+            type,
+            subType,
+            count: 0,
+            ...patch,
+          },
+        ];
       }
     });
+  }
+
+  function setCount(type: string, subType: string, count: number) {
+    updateItem(type, subType, { count });
   }
 
   function handleSave(asPending = false) {
@@ -97,19 +113,47 @@ export const ProfessorEvaluationModal: React.FC<{
               {type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ')}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {allSubTypes[type].map(subType => (
-                <div key={subType} className="flex items-center">
-                  <span className="text-xs w-36 truncate" title={subType}>{subType}</span>
-                  <input
-                    type="number"
-                    min={0}
-                    className="border rounded w-16 p-1 ml-2"
-                    value={getCount(type, subType)}
-                    onChange={e => setCount(type, subType, Math.max(0, Number(e.target.value)))}
-                  />
-                  <span className="ml-2 text-xs text-gray-400">({getScore(type, subType)} ball)</span>
-                </div>
-              ))}
+              {allSubTypes[type].map(subType => {
+                const item = getItem(type, subType);
+                const count = item?.count || 0;
+                return (
+                  <div key={subType} className="p-2 border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900/60 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium w-40 truncate" title={subType}>{subType}</span>
+                      <div className="flex items-center">
+                        <input
+                          type="number"
+                          min={0}
+                          className="border rounded w-16 p-1 text-center font-bold text-sm bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                          value={count}
+                          onChange={e => setCount(type, subType, Math.max(0, Number(e.target.value)))}
+                        />
+                        <span className="ml-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 w-16 text-right">
+                          +{getScore(type, subType) * count} b
+                        </span>
+                      </div>
+                    </div>
+                    {count > 0 && (
+                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800 space-y-1.5 animate-fadeIn">
+                        <input
+                          type="url"
+                          placeholder="🔗 Asoslovchi havola (DOI yoki URL)"
+                          value={item?.documentUrl || ''}
+                          onChange={e => updateItem(type, subType, { documentUrl: e.target.value })}
+                          className="w-full text-xs p-1.5 border rounded-md bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
+                        />
+                        <input
+                          type="text"
+                          placeholder="📝 Maqola/Sertifikat nomi yoki qisqa izoh"
+                          value={item?.notes || ''}
+                          onChange={e => updateItem(type, subType, { notes: e.target.value })}
+                          className="w-full text-xs p-1.5 border rounded-md bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

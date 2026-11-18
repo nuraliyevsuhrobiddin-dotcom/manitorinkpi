@@ -55,6 +55,8 @@ export interface Achievement {
   count: number;
   status?: 'pending' | 'approved' | 'rejected';
   rejectionNote?: string;
+  documentUrl?: string;
+  notes?: string;
 }
 
 export interface Project {
