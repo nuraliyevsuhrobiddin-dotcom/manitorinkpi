@@ -28,6 +28,24 @@ import { LoginModal } from './components/modals/LoginModal';
 
 const REPORT_YEAR_STORAGE_KEY = 'kpi_selected_report_year';
 
+const VALID_VIEWS = new Set([
+  'dashboard',
+  'faculties',
+  'departments',
+  'professors',
+  'kpi',
+  'potential',
+  'projects',
+  'performance',
+  'efficiency',
+  'management',
+]);
+
+const getViewFromHash = (): string => {
+  const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
+  return VALID_VIEWS.has(raw) ? raw : 'dashboard';
+};
+
 function App() {
   const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || {id: 0, username: 'guest', role: 'guest'}, []);
 
@@ -36,7 +54,7 @@ function App() {
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState<string>(() => getViewFromHash());
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<Filters>({ gender: [], degree: [], title: [], ageRange: [], position: [] });
   const [selectedYear, setSelectedYear] = useState(() => {
@@ -46,6 +64,28 @@ function App() {
 
   // Permissions
   const isSuperAdmin = user?.role === 'superadmin';
+
+  const handleNavigate = useCallback((viewId: string) => {
+    setActiveView(viewId);
+    window.location.hash = `#/${viewId}`;
+    setSidebarOpen(false);
+  }, []);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const v = getViewFromHash();
+      setActiveView(v);
+    };
+
+    if (!window.location.hash) {
+      window.location.hash = '#/dashboard';
+    } else {
+      handleHashChange();
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Ma'lumotlarni state'ga ko'chirish
   const [users, setUsers] = useState<User[]>(CONSTANTS.USERS);
@@ -467,7 +507,7 @@ function App() {
       };
 
       setUser(userWithDept as User);
-      setActiveView('dashboard');
+      handleNavigate('dashboard');
       setLoginError('');
       setLoginModalOpen(false);
 
@@ -487,7 +527,7 @@ function App() {
       if (localFound) {
         const deptObj = departments.find(d => d.id === localFound.departmentId);
         setUser({ ...localFound, departmentName: deptObj?.name });
-        setActiveView('dashboard');
+        handleNavigate('dashboard');
         setLoginError('');
         setLoginModalOpen(false);
       } else {
@@ -499,7 +539,7 @@ function App() {
   const handleLogout = async () => {
     await AuthService.logout();
     setUser(guestUser);
-    setActiveView('dashboard');
+    handleNavigate('dashboard');
     setLoginError('');
   };
 
@@ -640,7 +680,7 @@ function App() {
         logoPath={ASSETS.logos.university.path}
         navItems={navItems}
         onClose={() => setSidebarOpen(false)}
-        onNavigate={setActiveView}
+        onNavigate={handleNavigate}
         title={appTitle}
         user={user}
       />
