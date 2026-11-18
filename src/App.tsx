@@ -515,9 +515,18 @@ function App() {
     const universityScientificPotential = totalProfessors > 0 ? (totalDegreeHolders / totalProfessors) * 100 : 0;
 
     const projectTypeCounts = projects.reduce((acc, p) => {
-      acc[p.type] = (acc[p.type] || 0) + 1;
+      const t = (p.type || '').trim().toLowerCase();
+      if (t.includes('startap') || t.includes('startup')) {
+        acc['Startap'] = (acc['Startap'] || 0) + 1;
+      } else if (t.includes('grant')) {
+        acc['Grant'] = (acc['Grant'] || 0) + 1;
+      } else if (t.includes('spinoff')) {
+        acc['Spinoff'] = (acc['Spinoff'] || 0) + 1;
+      } else {
+        acc['Loyiha'] = (acc['Loyiha'] || 0) + 1;
+      }
       return acc;
-    }, {} as { [key: string]: number });
+    }, { Startap: 0, Grant: 0, Loyiha: 0, Spinoff: 0 } as { [key: string]: number });
 
     return { professorsWithDetails, departmentRatings, facultyRatings, achievements: achievementsForYear, getScore, selectedYear, universityScientificPotential, allProfessors: professors, totalDegreeHolders, totalDSc, totalPhD, projectTypeCounts };
   }, [selectedYear, faculties, departments, professors, achievements, plans, projects, getScore, scoringSystem]);
