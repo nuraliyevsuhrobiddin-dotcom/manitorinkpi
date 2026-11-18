@@ -691,6 +691,7 @@ function App() {
                   departmentRatings={processedData.departmentRatings}
                   professorsWithDetails={processedData.professorsWithDetails}
                   searchQuery={searchQuery}
+                  user={user}
                 />;
       case 'management':
         return <DataManagementPage
