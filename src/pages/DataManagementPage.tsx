@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Building, GraduationCap, BookCopy, Briefcase, UserPlus, Rocket, Award, ClipboardList, UserCog, CheckCircle2, PlusCircle, Edit, Trash2, Edit3, XCircle, Clock } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import { Building, GraduationCap, BookCopy, Briefcase, UserPlus, Rocket, Award, ClipboardList, UserCog, CheckCircle2, PlusCircle, Edit, Trash2, Edit3, XCircle, Clock, Upload, FileSpreadsheet } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import type { User, Faculty, Department, Division, Professor, Achievement, Plan, Project, ScoringSystem, ScoringCategory, ThesisDefense } from '../types/kpi';
@@ -245,6 +246,119 @@ export const DataManagementPage: React.FC<{
     setProfForm({ lastName: '', firstName: '', patronymic: '', departmentId: departments[0]?.id || '', position: positions[0] || '', degree: 'Yo’q', title: 'Yo’q', phone: '', staffUnit: 1.0, gender: 'erkak', birthDate: '', employmentType: employmentTypes[0] || 'Asosiy' });
   };
   const handleProfFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => { const { name, value } = e.target; setProfForm(p => ({ ...p, [name]: value })); setProfErrors(p => ({ ...p, [name]: undefined })); };
+
+  const [importStatus, setImportStatus] = useState<string>('');
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        'Familiya': 'Aliyev',
+        'Ism': 'Vali',
+        'Otasining ismi': 'Karimovich',
+        'Kafedra': departments[0]?.name || 'Pedagogika',
+        'Lavozim': positions[0] || 'Katta o‘qituvchi',
+        'Ilmiy daraja': 'PhD',
+        'Ilmiy unvon': 'Dotsent',
+        'Jinsi': 'erkak',
+        'Tug‘ilgan sana (YYYY-MM-DD)': '1985-05-15',
+        'Shtat birligi': 1.0,
+        'Bandlik turi': 'Asosiy',
+        'Telefon': '+998901234567',
+      },
+      {
+        'Familiya': 'Karimova',
+        'Ism': 'Zilola',
+        'Otasining ismi': 'Rustam qizi',
+        'Kafedra': departments[0]?.name || 'Pedagogika',
+        'Lavozim': 'Assistent',
+        'Ilmiy daraja': 'Yo‘q',
+        'Ilmiy unvon': 'Yo‘q',
+        'Jinsi': 'ayol',
+        'Tug‘ilgan sana (YYYY-MM-DD)': '1992-08-20',
+        'Shtat birligi': 1.0,
+        'Bandlik turi': 'Asosiy',
+        'Telefon': '+998909876543',
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Oqituvchilar_Shablon");
+    XLSX.writeFile(wb, "Oqituvchilar_Import_Shablon_HEMIS.xlsx");
+  };
+
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const rawData = XLSX.utils.sheet_to_json(ws) as any[];
+
+        if (!rawData || rawData.length === 0) {
+          setImportStatus("Faylda ma'lumot topilmadi.");
+          return;
+        }
+
+        let importedCount = 0;
+        const newProfs: Professor[] = [];
+
+        rawData.forEach((row, i) => {
+          const lastName = String(row['Familiya'] || row['familiya'] || row['Last Name'] || '').trim();
+          const firstName = String(row['Ism'] || row['ism'] || row['First Name'] || '').trim();
+          if (!lastName || !firstName) return;
+
+          const patronymic = String(row['Otasining ismi'] || row['otasining_ismi'] || row['Patronymic'] || '').trim();
+          const deptNameRaw = String(row['Kafedra'] || row['kafedra'] || row['Department'] || '').trim().toLowerCase();
+          
+          const matchedDept = departments.find(d => d.name.toLowerCase() === deptNameRaw || d.name.toLowerCase().includes(deptNameRaw)) || departments[0];
+          const deptId = matchedDept ? matchedDept.id : 1;
+
+          const position = String(row['Lavozim'] || row['lavozim'] || row['Position'] || positions[0] || 'O‘qituvchi').trim();
+          const degree = String(row['Ilmiy daraja'] || row['ilmiy_daraja'] || row['Degree'] || 'Yo‘q').trim();
+          const title = String(row['Ilmiy unvon'] || row['ilmiy_unvon'] || row['Title'] || 'Yo‘q').trim();
+          const genderRaw = String(row['Jinsi'] || row['jinsi'] || row['Gender'] || 'erkak').trim().toLowerCase();
+          const gender = genderRaw.startsWith('a') ? 'ayol' : 'erkak';
+          const birthDate = String(row['Tug‘ilgan sana (YYYY-MM-DD)'] || row['Tug‘ilgan sana'] || row['birthDate'] || '1990-01-01').trim();
+          const staffUnit = Number(row['Shtat birligi'] || row['staffUnit'] || 1.0) || 1.0;
+          const employmentType = String(row['Bandlik turi'] || row['employmentType'] || 'Asosiy').trim();
+          const phone = String(row['Telefon'] || row['phone'] || '').trim();
+
+          newProfs.push({
+            id: Date.now() + i + Math.floor(Math.random() * 1000),
+            lastName,
+            firstName,
+            patronymic,
+            departmentId: deptId,
+            position,
+            degree,
+            title,
+            gender,
+            birthDate,
+            staffUnit,
+            employmentType,
+            phone,
+          } as any);
+          importedCount++;
+        });
+
+        if (importedCount > 0) {
+          setProfessors(prev => [...prev, ...newProfs]);
+          setImportStatus(`✅ ${importedCount} nafar professor-o'qituvchi muvaffaqiyatli import qilindi!`);
+        } else {
+          setImportStatus("Fayl ustunlari shablonga mos kelmadi. Iltimos, shablonni tekshiring.");
+        }
+      } catch (err: any) {
+        setImportStatus(`Xatolik yuz berdi: ${err.message || 'Faylni o‘qib bo‘lmadi'}`);
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = '';
+  };
 
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -615,6 +729,50 @@ export const DataManagementPage: React.FC<{
           </div>
       );
       case 'professors': return (
+        <div className="space-y-6">
+          {/* Excel / HEMIS Bulk Import Card */}
+          <Card className="border border-indigo-200 dark:border-indigo-900 bg-gradient-to-r from-indigo-50/50 to-blue-50/50 dark:from-slate-900 dark:to-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileSpreadsheet className="text-indigo-600" size={20} />
+                  Excel / HEMIS tizimidan ommaviy yuklash (Bulk Import)
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  100+ o'qituvchini bir zumda Excel jadvali orqali tizimga avtomatik kiritish
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadTemplate}
+                  className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-sm"
+                >
+                  <FileSpreadsheet size={15} className="text-emerald-600" />
+                  Namuna shablonni yuklab olish
+                </button>
+
+                <label className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer active:scale-95">
+                  <Upload size={15} />
+                  Excel faylni tanlash (.xlsx)
+                  <input
+                    type="file"
+                    accept=".xlsx, .xls"
+                    onChange={handleExcelImport}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {importStatus && (
+              <div className="mt-3 p-2.5 rounded-lg text-xs font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200">
+                {importStatus}
+              </div>
+            )}
+          </Card>
+
           <Card>
             <h3 className="text-lg font-semibold mb-4">Yangi professor-o'qituvchi qo'shish</h3>
             <form onSubmit={handleAddProfessor} className="space-y-4" noValidate>
@@ -664,6 +822,7 @@ export const DataManagementPage: React.FC<{
               <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
             </form>
           </Card>
+        </div>
       );
       case 'projects': return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
