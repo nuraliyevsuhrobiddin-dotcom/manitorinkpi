@@ -3,8 +3,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CONSTANTS } from './data.js';
 import { ASSETS } from './assetManifest.js';
 import { Header } from './components/Header';
+import { Sidebar, type SidebarNavItem } from './components/Sidebar';
 import { MobileMenu } from './components/MobileMenu';
-import type { SidebarNavItem } from './components/Sidebar';
 import { SupabaseState } from './supabaseState';
 import { AuthService } from './shared/services/authService';
 import { DataService } from './shared/services/dataService';
@@ -687,12 +687,12 @@ function App() {
         />;
       case 'efficiency':
         return <EfficiencyPage
-                  facultyRatings={processedData.facultyRatings}
-                  departmentRatings={processedData.departmentRatings}
-                  professorsWithDetails={processedData.professorsWithDetails}
-                  searchQuery={searchQuery}
-                  user={user}
-                />;
+          facultyRatings={processedData.facultyRatings}
+          departmentRatings={processedData.departmentRatings}
+          professorsWithDetails={processedData.professorsWithDetails}
+          searchQuery={searchQuery}
+          user={user}
+        />;
       case 'management':
         return <DataManagementPage
           user={user}
@@ -723,9 +723,25 @@ function App() {
   };
 
   const appTitle = 'SHDPI';
+  const activeNavItem = useMemo(() => {
+    return ALL_NAV_ITEMS.find(item => item.id === activeView);
+  }, [activeView]);
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
+      {/* Desktop doimiy Sidebar */}
+      <div className="hidden lg:flex flex-shrink-0">
+        <Sidebar
+          activeView={activeView}
+          logoPath={ASSETS.logos.university.path}
+          navItems={navItems}
+          onNavigate={handleNavigate}
+          title={appTitle}
+          user={user}
+        />
+      </div>
+
+      {/* Mobil menyu */}
       <MobileMenu
         activeView={activeView}
         isOpen={sidebarOpen}
@@ -736,8 +752,10 @@ function App() {
         title={appTitle}
         user={user}
       />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
+          activeViewTitle={activeNavItem?.label}
+          activeViewIcon={activeNavItem?.icon}
           availableReportYears={availableReportYears}
           onLoginClick={() => setLoginModalOpen(true)}
           onLogout={handleLogout}

@@ -155,10 +155,26 @@ export const ScientificPotentialPage: React.FC<{
       filtered = filtered.filter((p: any) => filters.gender.includes(p.gender));
     }
     if (filters.degree.length > 0) {
-      filtered = filtered.filter((p: any) => filters.degree.includes(p.degree));
+      filtered = filtered.filter((p: any) => {
+        const d = (p.degree || '').trim().toLowerCase();
+        return filters.degree.some(val => {
+          if (val === 'DSc') return d.includes('dsc') || d.includes('fan doktori');
+          if (val === 'PhD') return d.includes('phd') || d.includes('nomzod');
+          if (val === 'none') return !d || d === 'none' || d === 'yo\'q' || d === '-' || d === 'mavjud emas';
+          return d === val.toLowerCase();
+        });
+      });
     }
     if (filters.title.length > 0) {
-      filtered = filtered.filter((p: any) => filters.title.includes(p.title));
+      filtered = filtered.filter((p: any) => {
+        const t = (p.title || '').trim().toLowerCase();
+        return filters.title.some(val => {
+          if (val === 'Professor') return t.includes('prof');
+          if (val === 'Dotsent') return t.includes('dots') || t.includes('doc');
+          if (val === 'none') return !t || t === 'none' || t === 'yo\'q' || t === '-' || t === 'mavjud emas';
+          return t === val.toLowerCase();
+        });
+      });
     }
     if (filters.position.length > 0) {
       filtered = filtered.filter((p: any) => filters.position.includes(p.position));

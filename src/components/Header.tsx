@@ -1,8 +1,10 @@
 import React from 'react';
-import { Calendar, LogIn, LogOut, Menu, Shield, User as UserIcon, Sparkles } from 'lucide-react';
+import { Calendar, LogIn, LogOut, Menu, Shield, User as UserIcon } from 'lucide-react';
 import { getRoleMeta } from '../utils/roles';
 
 type HeaderProps = {
+  activeViewTitle?: string;
+  activeViewIcon?: React.ElementType;
   availableReportYears: number[];
   onLoginClick: () => void;
   onLogout: () => void;
@@ -13,6 +15,8 @@ type HeaderProps = {
 };
 
 export const Header: React.FC<HeaderProps> = ({
+  activeViewTitle,
+  activeViewIcon: ActiveIcon,
   availableReportYears,
   onLoginClick,
   onLogout,
@@ -28,19 +32,34 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="h-20 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-4 md:px-8 sticky top-0 z-30 transition-all">
       <div className="flex items-center space-x-4 min-w-0">
+        {/* Mobile menu toggle (mobile/tablet only) */}
         <button
           type="button"
           onClick={onMenuClick}
-          className="inline-flex items-center justify-center h-10 w-10 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm"
+          className="lg:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-sm"
           aria-label="Menyuni ochish"
         >
           <Menu size={20} />
         </button>
 
-        <div className="hidden lg:flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-          <Sparkles size={14} className="text-indigo-500" />
-          <span>O'zbekiston KPI Reyting & Samaradorlik Portali</span>
-        </div>
+        {/* Current Active Page Title & Badge */}
+        {activeViewTitle && (
+          <div className="flex items-center space-x-2.5">
+            {ActiveIcon && (
+              <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60 shadow-sm">
+                <ActiveIcon size={18} />
+              </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Faol sahifa
+              </span>
+              <h2 className="text-sm md:text-base font-extrabold text-slate-900 dark:text-white truncate leading-tight">
+                {activeViewTitle}
+              </h2>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center space-x-3 md:space-x-5">
