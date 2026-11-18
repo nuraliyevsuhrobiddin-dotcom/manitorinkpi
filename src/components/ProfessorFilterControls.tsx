@@ -11,14 +11,22 @@ type FilterControlsProps = {
 export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
   filters,
   onFilterChange,
-  positions,
+  positions = [],
 }) => {
+  const currentFilters = {
+    gender: filters?.gender || [],
+    degree: filters?.degree || [],
+    title: filters?.title || [],
+    ageRange: filters?.ageRange || [],
+    position: filters?.position || [],
+  };
+
   const handleToggle = (category: keyof Filters, value: string) => {
-    const current = filters[category] || [];
+    const current = currentFilters[category] || [];
     const updated = current.includes(value)
       ? current.filter(v => v !== value)
       : [...current, value];
-    onFilterChange({ ...filters, [category]: updated });
+    onFilterChange({ ...currentFilters, [category]: updated });
   };
 
   const handleReset = () => {
@@ -32,23 +40,22 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
   };
 
   const totalActiveFilters =
-    (filters.gender?.length || 0) +
-    (filters.degree?.length || 0) +
-    (filters.title?.length || 0) +
-    (filters.ageRange?.length || 0) +
-    (filters.position?.length || 0);
+    currentFilters.gender.length +
+    currentFilters.degree.length +
+    currentFilters.title.length +
+    currentFilters.ageRange.length +
+    currentFilters.position.length;
 
-  // O'zbekiston OTM standartlariga mos ilmiy darajalar va unvonlar
   const degreeOptions = [
-    { value: 'DSc', label: 'DSc (Fan doktori)', desc: 'Doktorlik dissertatsiyasini himoya qilgan' },
-    { value: 'PhD', label: 'PhD (Falsafa doktori / Fan nomzodi)', desc: 'PhD yoki fan nomzodi ilmiy darajasi' },
-    { value: 'none', label: 'Darajasiz (yo\'q)', desc: 'Ilmiy darajaga ega bo\'lmagan o\'qituvchilar' },
+    { value: 'DSc', label: 'DSc (Fan doktori)' },
+    { value: 'PhD', label: 'PhD (Falsafa doktori / Fan nomzodi)' },
+    { value: 'none', label: 'Darajasiz (yo\'q)' },
   ];
 
   const titleOptions = [
-    { value: 'Professor', label: 'Professor', desc: 'OAK tomonidan berilgan professor unvoni' },
-    { value: 'Dotsent', label: 'Dotsent', desc: 'OAK tomonidan berilgan dotsent unvoni' },
-    { value: 'none', label: 'Unvonsiz (yo\'q)', desc: 'Ilmiy unvonga ega bo\'lmagan xodimlar' },
+    { value: 'Professor', label: 'Professor' },
+    { value: 'Dotsent', label: 'Dotsent' },
+    { value: 'none', label: 'Unvonsiz (yo\'q)' },
   ];
 
   const genderOptions = [
@@ -92,7 +99,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
 
       {/* Filter Categories Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Ilmiy daraja (Degree) */}
+        {/* 1. Ilmiy daraja */}
         <div className="space-y-2">
           <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
             <GraduationCap size={15} className="text-indigo-500" />
@@ -100,7 +107,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
           </div>
           <div className="space-y-1.5">
             {degreeOptions.map(opt => {
-              const checked = filters.degree.includes(opt.value);
+              const checked = currentFilters.degree.includes(opt.value);
               return (
                 <button
                   key={opt.value}
@@ -120,7 +127,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
           </div>
         </div>
 
-        {/* 2. Ilmiy unvon (Title) */}
+        {/* 2. Ilmiy unvon */}
         <div className="space-y-2">
           <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide">
             <Award size={15} className="text-amber-500" />
@@ -128,7 +135,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
           </div>
           <div className="space-y-1.5">
             {titleOptions.map(opt => {
-              const checked = filters.title.includes(opt.value);
+              const checked = currentFilters.title.includes(opt.value);
               return (
                 <button
                   key={opt.value}
@@ -150,7 +157,6 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
 
         {/* 3. Jinsi va Yoshi */}
         <div className="space-y-3">
-          {/* Jinsi */}
           <div>
             <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
               <Users size={14} className="text-blue-500" />
@@ -158,7 +164,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-1.5">
               {genderOptions.map(opt => {
-                const checked = filters.gender.includes(opt.value);
+                const checked = currentFilters.gender.includes(opt.value);
                 return (
                   <button
                     key={opt.value}
@@ -177,7 +183,6 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
             </div>
           </div>
 
-          {/* Yosh toifasi */}
           <div>
             <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-1.5">
               <Calendar size={14} className="text-emerald-500" />
@@ -185,7 +190,7 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
             </div>
             <div className="flex flex-wrap gap-1">
               {ageOptions.map(opt => {
-                const checked = filters.ageRange.includes(opt.value);
+                const checked = currentFilters.ageRange.includes(opt.value);
                 return (
                   <button
                     key={opt.value}
@@ -212,24 +217,28 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
             <span>Lavozimi</span>
           </div>
           <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
-            {positions.map(pos => {
-              const checked = filters.position.includes(pos);
-              return (
-                <button
-                  key={pos}
-                  type="button"
-                  onClick={() => handleToggle('position', pos)}
-                  className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between border ${
-                    checked
-                      ? 'bg-purple-600 text-white border-purple-600 font-semibold'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-300'
-                  }`}
-                >
-                  <span className="truncate">{pos}</span>
-                  {checked && <Check size={13} className="flex-shrink-0 ml-1" />}
-                </button>
-              );
-            })}
+            {positions && positions.length > 0 ? (
+              positions.map(pos => {
+                const checked = currentFilters.position.includes(pos);
+                return (
+                  <button
+                    key={pos}
+                    type="button"
+                    onClick={() => handleToggle('position', pos)}
+                    className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-between border ${
+                      checked
+                        ? 'bg-purple-600 text-white border-purple-600 font-semibold'
+                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-300'
+                    }`}
+                  >
+                    <span className="truncate">{pos}</span>
+                    {checked && <Check size={13} className="flex-shrink-0 ml-1" />}
+                  </button>
+                );
+              })
+            ) : (
+              <span className="text-xs text-slate-400">Lavozimlar mavjud emas</span>
+            )}
           </div>
         </div>
       </div>

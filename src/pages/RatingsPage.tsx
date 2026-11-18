@@ -11,71 +11,81 @@ type RatingsPageProps = {
 
 export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
   const isFaculty = type === 'faculty';
-  const rawItems = isFaculty ? (data.facultyRatings || []) : (data.departmentRatings || []);
+  const rawItems = isFaculty ? (data?.facultyRatings || []) : (data?.departmentRatings || []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'score' | 'potential' | 'completion'>('score');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [expandedSubDept, setExpandedSubDept] = useState<number | null>(null);
 
-  // Statistics summaries
+  // Statistics summaries (safely cast to Number)
   const totalCount = rawItems.length;
   const avgPotential = totalCount > 0
-    ? (rawItems.reduce((acc: number, item: any) => acc + (item.scientificPotential || 0), 0) / totalCount).toFixed(1)
+    ? (rawItems.reduce((acc: number, item: any) => acc + (Number(item?.scientificPotential) || 0), 0) / totalCount).toFixed(1)
     : '0.0';
   const avgCompletion = totalCount > 0
-    ? (rawItems.reduce((acc: number, item: any) => acc + (item.completionPercent || 0), 0) / totalCount).toFixed(1)
+    ? (rawItems.reduce((acc: number, item: any) => acc + (Number(item?.completionPercent) || 0), 0) / totalCount).toFixed(1)
     : '0.0';
-  const totalProfessors = rawItems.reduce((acc: number, item: any) => acc + (item.professors?.length || 0), 0);
+  const totalProfessors = rawItems.reduce((acc: number, item: any) => acc + ((item?.professors && Array.isArray(item.professors)) ? item.professors.length : 0), 0);
 
   // Filtered and sorted items
   const displayItems = useMemo(() => {
-    let list = [...rawItems];
+    let list = Array.isArray(rawItems) ? [...rawItems] : [];
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter((item: any) =>
-        item.name.toLowerCase().includes(q) ||
-        (item.facultyName && item.facultyName.toLowerCase().includes(q))
+        (item?.name && String(item.name).toLowerCase().includes(q)) ||
+        (item?.facultyName && String(item.facultyName).toLowerCase().includes(q))
       );
     }
 
     list.sort((a: any, b: any) => {
-      if (sortBy === 'potential') return (b.scientificPotential || 0) - (a.scientificPotential || 0);
-      if (sortBy === 'completion') return (b.completionPercent || 0) - (a.completionPercent || 0);
-      return (b.totalScore || 0) - (a.totalScore || 0);
+      const aPot = Number(a?.scientificPotential) || 0;
+      const bPot = Number(b?.scientificPotential) || 0;
+      const aComp = Number(a?.completionPercent) || 0;
+      const bComp = Number(b?.completionPercent) || 0;
+      const aScore = Number(a?.totalScore) || 0;
+      const bScore = Number(b?.totalScore) || 0;
+
+      if (sortBy === 'potential') return bPot - aPot;
+      if (sortBy === 'completion') return bComp - aComp;
+      return bScore - aScore;
     });
 
     return list;
   }, [rawItems, searchQuery, sortBy]);
 
-  const renderProfessorList = (professors: any[]) => (
-    <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 mt-2">
-      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-        <span>Professor-o'qituvchilar ({professors.length} nafar)</span>
-        <span>Amalda to'plangan ball</span>
-      </div>
-      {professors.map((prof: any) => (
-        <div
-          key={prof.id}
-          className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700/40 hover:border-indigo-300 transition-colors"
-        >
-          <div className="flex items-center space-x-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-            <span className="font-semibold">{getProfessorName(prof)}</span>
-            <span className="text-slate-400">({prof.position || 'O\'qituvchi'})</span>
-            {prof.degree && prof.degree !== 'none' && (
-              <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
-                {prof.degree}
-              </span>
-            )}
-          </div>
-          <span className="font-bold text-indigo-600 dark:text-indigo-400">
-            {(prof.totalScore || 0).toFixed(2)} ball
-          </span>
+  const renderProfessorList = (professors: any[]) => {
+    const list = Array.isArray(professors) ? professors : [];
+    return (
+      <div className="bg-slate-50 dark:bg-slate-800/60 rounded-xl p-3 border border-slate-200/60 dark:border-slate-700/60 space-y-1.5 mt-2">
+        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Professor-o'qituvchilar ({list.length} nafar)</span>
+          <span>Amalda to'plangan ball</span>
         </div>
-      ))}
-    </div>
-  );
+        {list.map((prof: any) => (
+          <div
+            key={prof.id}
+            className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white dark:bg-slate-800 text-xs text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700/40 hover:border-indigo-300 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+              <span className="font-semibold">{getProfessorName(prof)}</span>
+              <span className="text-slate-400">({prof.position || 'O\'qituvchi'})</span>
+              {prof.degree && prof.degree !== 'none' && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 font-bold">
+                  {prof.degree}
+                </span>
+              )}
+            </div>
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">
+              {(Number(prof?.totalScore) || 0).toFixed(2)} ball
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="space-y-6">
@@ -146,7 +156,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
               {displayItems[0]?.name || 'Mavjud emas'}
             </div>
             <div className="text-[11px] text-cyan-200 mt-0.5">
-              {displayItems[0] ? `${(displayItems[0].totalScore || 0).toFixed(1)} ball` : '-'}
+              {displayItems[0] ? `${(Number(displayItems[0]?.totalScore) || 0).toFixed(1)} ball` : '-'}
             </div>
           </div>
         </div>
@@ -220,6 +230,8 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                 index === 2 ? 'bg-amber-700 text-white' :
                 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
 
+              const itemProfCount = (item?.professors && Array.isArray(item.professors)) ? item.professors.length : 0;
+
               return (
                 <div
                   key={item.id}
@@ -244,7 +256,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                             {item.name}
                           </p>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-medium flex-shrink-0">
-                            {item.professors?.length || 0} nafar
+                            {itemProfCount} nafar
                           </span>
                         </div>
                         {item.facultyName && (
@@ -262,7 +274,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                           Ilmiy salohiyat
                         </span>
                         <span className="text-base font-black text-purple-600 dark:text-purple-400">
-                          {(item.scientificPotential || 0).toFixed(1)}%
+                          {(Number(item?.scientificPotential) || 0).toFixed(1)}%
                         </span>
                       </div>
 
@@ -271,7 +283,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                           Reja
                         </span>
                         <span className="text-base font-bold text-slate-700 dark:text-slate-300">
-                          {(item.totalPlan || 0).toFixed(1)}
+                          {(Number(item?.totalPlan) || 0).toFixed(1)}
                         </span>
                       </div>
 
@@ -280,7 +292,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                           Amalda
                         </span>
                         <span className="text-base font-black text-blue-600 dark:text-blue-400">
-                          {(item.totalScore || 0).toFixed(1)}
+                          {(Number(item?.totalScore) || 0).toFixed(1)}
                         </span>
                       </div>
 
@@ -289,7 +301,7 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                           Bajarilish
                         </span>
                         <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
-                          {(item.completionPercent || 0).toFixed(1)}%
+                          {(Number(item?.completionPercent) || 0).toFixed(1)}%
                         </span>
                       </div>
 
@@ -315,10 +327,11 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                               <span>Fakultet tarkibidagi kafedralar:</span>
                             </h4>
 
-                            {item.departments && item.departments.length > 0 ? (
+                            {item.departments && Array.isArray(item.departments) && item.departments.length > 0 ? (
                               <div className="space-y-2">
                                 {item.departments.map((dept: any) => {
                                   const isDeptExpanded = expandedSubDept === dept.id;
+                                  const deptProfCount = (dept?.professors && Array.isArray(dept.professors)) ? dept.professors.length : 0;
                                   return (
                                     <div
                                       key={dept.id}
@@ -333,15 +346,15 @@ export const RatingsPage: React.FC<RatingsPageProps> = ({ data, type }) => {
                                             {dept.name}
                                           </span>
                                           <span className="text-[11px] text-slate-400">
-                                            ({dept.professors?.length || 0} nafar)
+                                            ({deptProfCount} nafar)
                                           </span>
                                         </div>
                                         <div className="flex items-center space-x-4 text-xs font-semibold">
                                           <span className="text-blue-600 dark:text-blue-400">
-                                            Amalda: {(dept.totalScore || 0).toFixed(1)}
+                                            Amalda: {(Number(dept?.totalScore) || 0).toFixed(1)}
                                           </span>
                                           <span className="text-emerald-600 dark:text-emerald-400">
-                                            Bajarilish: {(dept.completionPercent || 0).toFixed(1)}%
+                                            Bajarilish: {(Number(dept?.completionPercent) || 0).toFixed(1)}%
                                           </span>
                                           {isDeptExpanded ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
                                         </div>
