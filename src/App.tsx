@@ -753,6 +753,7 @@ function App() {
         title={appTitle}
         user={user}
       />
+
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header
           activeViewTitle={activeNavItem?.label}
@@ -801,6 +802,7 @@ function App() {
           </AnimatePresence>
         </div>
       </main>
+
       <LoginModal
         open={loginModalOpen}
         onClose={() => { setLoginModalOpen(false); setLoginError(''); }}

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { ChevronDown, ChevronRight, Filter, ChevronUp, Search, FileSpreadsheet } from 'lucide-react';

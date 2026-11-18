@@ -113,11 +113,10 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleToggle('degree', opt.value)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${
-                    checked
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20 font-semibold'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${checked
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-indigo-600/20 font-semibold'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                    }`}
                 >
                   <span className="truncate">{opt.label}</span>
                   {checked && <Check size={14} className="flex-shrink-0 ml-1" />}
@@ -141,11 +140,10 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleToggle('title', opt.value)}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${
-                    checked
-                      ? 'bg-amber-600 text-white border-amber-600 shadow-sm shadow-amber-600/20 font-semibold'
-                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'
-                  }`}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center justify-between border ${checked
+                    ? 'bg-amber-600 text-white border-amber-600 shadow-sm shadow-amber-600/20 font-semibold'
+                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'
+                    }`}
                 >
                   <span className="truncate">{opt.label}</span>
                   {checked && <Check size={14} className="flex-shrink-0 ml-1" />}
@@ -170,11 +168,10 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
                     key={opt.value}
                     type="button"
                     onClick={() => handleToggle('gender', opt.value)}
-                    className={`text-center px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${
-                      checked
-                        ? 'bg-blue-600 text-white border-blue-600 font-semibold'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                    }`}
+                    className={`text-center px-3 py-1.5 rounded-xl text-xs font-medium transition-all border ${checked
+                      ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
                   >
                     {opt.label}
                   </button>
@@ -196,11 +193,10 @@ export const ProfessorFilterControls: React.FC<FilterControlsProps> = ({
                     key={opt.value}
                     type="button"
                     onClick={() => handleToggle('ageRange', opt.value)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${
-                      checked
-                        ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
-                        : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
-                    }`}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all border ${checked
+                      ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
+                      : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                      }`}
                   >
                     {opt.label}
                   </button>
