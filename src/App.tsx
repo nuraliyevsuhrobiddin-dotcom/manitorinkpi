@@ -26,7 +26,6 @@ import { PerformanceMonitoringPage } from './pages/PerformanceMonitoringPage';
 import { EfficiencyPage } from './pages/EfficiencyPage';
 import { DataManagementPage } from './pages/DataManagementPage';
 import { LoginModal } from './components/modals/LoginModal';
-import { LoginPage } from './components/LoginPage';
 import { getAllowedViewsForRole, getRoleMeta } from './utils/roles';
 
 const REPORT_YEAR_STORAGE_KEY = 'kpi_selected_report_year';
@@ -63,13 +62,15 @@ const getViewFromHash = (): string => {
 };
 
 function App() {
-  // Initialize from localStorage — only keep if authenticated (not guest)
+  const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || { id: 0, username: 'guest', role: 'guest' }, []);
+
+  // Initialize from localStorage — authenticated user or fallback to guest
   const [user, setUser] = useState<User | null>(() => {
     const stored = AuthService.getCurrentUser() as User | null;
     if (stored && stored.role && stored.role !== 'guest') {
       return stored;
     }
-    return null;
+    return guestUser;
   });
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
@@ -527,10 +528,10 @@ function App() {
     AuthService.validateSession().then((validUser) => {
       if (cancelled) return;
       if (!validUser || validUser.role === 'guest') {
-        setUser(null);
+        setUser(guestUser);
       }
     }).catch(() => {
-      if (!cancelled) setUser(null);
+      if (!cancelled) setUser(guestUser);
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -589,7 +590,8 @@ function App() {
 
   const handleLogout = async () => {
     await AuthService.logout();
-    setUser(null);
+    setUser(guestUser);
+    handleNavigate('dashboard');
     setLoginError('');
   };
 
@@ -599,15 +601,8 @@ function App() {
     setFilters({ gender: [], degree: [], title: [], ageRange: [], position: [] });
   }, [activeView]);
 
-  // Agar foydalanuvchi tizimga kirmagan bo'lsa (yoki guest bo'lsa) — to'liq yopiq Login ekrani chiqadi
-  if (!user || user.role === 'guest') {
-    return (
-      <LoginPage
-        logoPath={ASSETS.logos.university.path}
-        onLogin={handleLogin}
-        error={loginError}
-      />
-    );
+  if (!user) {
+    return <div>Loading...</div>;
   }
 
   // ── Skeleton loading screen ─────────────────────────────────────────────────
