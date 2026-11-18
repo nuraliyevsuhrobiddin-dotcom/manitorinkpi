@@ -85,6 +85,10 @@ function App() {
     return ALL_NAV_ITEMS.filter(item => allowedViews.includes(item.id));
   }, [allowedViews]);
 
+  const activeNavItem = useMemo(() => {
+    return ALL_NAV_ITEMS.find(item => item.id === activeView);
+  }, [activeView]);
+
   const handleNavigate = useCallback((viewId: string) => {
     setActiveView(viewId);
     window.location.hash = `#/${viewId}`;
@@ -723,9 +727,6 @@ function App() {
   };
 
   const appTitle = 'SHDPI';
-  const activeNavItem = useMemo(() => {
-    return ALL_NAV_ITEMS.find(item => item.id === activeView);
-  }, [activeView]);
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden">
