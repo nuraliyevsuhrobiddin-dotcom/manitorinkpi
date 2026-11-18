@@ -79,11 +79,10 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
 
-              <div className={`p-2 rounded-xl text-white shadow-md ${
-                isSuperAdmin
+              <div className={`p-2 rounded-xl text-white shadow-md ${isSuperAdmin
                   ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-purple-500/20'
                   : 'bg-gradient-to-tr from-blue-600 to-cyan-600 shadow-blue-500/20'
-              }`}>
+                }`}>
                 {isSuperAdmin ? <Shield size={18} /> : <UserIcon size={18} />}
               </div>
             </div>
@@ -104,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onLoginClick}
               className="inline-flex items-center px-4 py-2.5 rounded-xl font-bold text-xs md:text-sm text-white bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/25 transition-all transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              <LogIn size={16} className="mr-2" /> Kirish / Ro'yxatdan o'tish
+              <LogIn size={16} className="mr-2" /> Tizimga Kirish
             </button>
           </div>
         )}

@@ -18,12 +18,36 @@ export const PerformanceMonitoringPage: React.FC<{
   faculties: Faculty[];
   departments: Department[];
   searchQuery: string;
-  isSuperAdmin: boolean;
-}> = ({ user, professors, achievements, plans, getScore, selectedYear, faculties, departments, searchQuery, isSuperAdmin }) => {
+  isSuperAdmin?: boolean;
+}> = ({ user, professors, achievements, plans, getScore, selectedYear, faculties, departments, searchQuery, isSuperAdmin: _isSuperAdmin }) => {
   const [expandedId, setExpandedId] = useState<number | string | null>(null);
   const [activeTab, setActiveTab] = useState('professors');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
+
+  const isKafedraAdmin = (user?.role === 'kafedra_mudiri' || user?.role === 'admin') && Boolean(user?.departmentId);
+  const isDekan = user?.role === 'dekan' && Boolean(user?.facultyId);
+
+  const tabs = useMemo(() => {
+    if (isKafedraAdmin) {
+      return [
+        { id: 'professors', label: 'Professor-o\'qituvchilar' },
+        { id: 'departments', label: 'Mening Kafedram' },
+      ];
+    }
+    if (isDekan) {
+      return [
+        { id: 'professors', label: 'Fakultet o\'qituvchilari' },
+        { id: 'departments', label: 'Fakultet kafedralari' },
+        { id: 'faculties', label: 'Fakultet' },
+      ];
+    }
+    return [
+      { id: 'professors', label: 'Professor-o\'qituvchilar' },
+      { id: 'departments', label: 'Kafedralar' },
+      { id: 'faculties', label: 'Fakultetlar' },
+    ];
+  }, [isKafedraAdmin, isDekan]);
 
   const performanceData = useMemo(() => {
     const calculatePerformance = (items: any[], idField: string, nameField: string, getSubItems: (item: any) => any[]) => {
@@ -69,17 +93,29 @@ export const PerformanceMonitoringPage: React.FC<{
       });
     };
 
-    const professorData = calculatePerformance(professors, 'id', 'name', (prof) => [prof]).map(p => ({...p, name: getProfessorName(professors.find(pr => pr.id === p.id)!)}));
+    let scopedProfessors = professors;
+    let scopedDepartments = departments;
+    let scopedFaculties = faculties;
 
-    const departmentData = calculatePerformance(departments, 'id', 'name', (dept) => professors.filter(p => p.departmentId === dept.id));
+    if (isKafedraAdmin && user.departmentId) {
+      scopedProfessors = professors.filter(p => p.departmentId === user.departmentId);
+      scopedDepartments = departments.filter(d => d.id === user.departmentId);
+    } else if (isDekan && user.facultyId) {
+      const facDeptIds = departments.filter(d => d.facultyId === user.facultyId).map(d => d.id);
+      scopedProfessors = professors.filter(p => facDeptIds.includes(p.departmentId));
+      scopedDepartments = departments.filter(d => d.facultyId === user.facultyId);
+      scopedFaculties = faculties.filter(f => f.id === user.facultyId);
+    }
 
-    const facultyData = calculatePerformance(faculties, 'id', 'name', (fac) => {
+    const professorData = calculatePerformance(scopedProfessors, 'id', 'name', (prof) => [prof]).map(p => ({...p, name: getProfessorName(professors.find(pr => pr.id === p.id)!)}));
+    const departmentData = calculatePerformance(scopedDepartments, 'id', 'name', (dept) => professors.filter(p => p.departmentId === dept.id));
+    const facultyData = calculatePerformance(scopedFaculties, 'id', 'name', (fac) => {
         const facDeptIds = departments.filter(d => d.facultyId === fac.id).map(d => d.id);
         return professors.filter(p => facDeptIds.includes(p.departmentId));
     });
 
     return { professors: professorData, departments: departmentData, faculties: facultyData };
-  }, [professors, achievements, plans, getScore, selectedYear, departments, faculties]);
+  }, [professors, achievements, plans, getScore, selectedYear, departments, faculties, isKafedraAdmin, isDekan, user?.departmentId, user?.facultyId]);
 
   const dataForTab = useMemo(() => {
       let data;
@@ -111,8 +147,8 @@ export const PerformanceMonitoringPage: React.FC<{
   };
 
   const handleExportMonitoring = () => {
-    if (user.role !== 'superadmin') {
-      alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+    if (!user || user.role === 'guest') {
+      alert('Mehmon foydalanuvchilar ma\'lumotlarni eksport qila olmaydi');
       return;
     }
     const dataToExport = dataForTab.map((p) => ({
@@ -133,17 +169,11 @@ export const PerformanceMonitoringPage: React.FC<{
     XLSX.writeFile(wb, `Monitoring_${activeTab}_${today}.xlsx`);
   };
 
-  const tabs = [
-      {id: 'professors', label: 'Professor-o\'qituvchilar'},
-      {id: 'departments', label: 'Kafedralar'},
-      {id: 'faculties', label: 'Fakultetlar'},
-  ]
-
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Ishlash Monitoringi ({selectedYear})</h1>
-        {user && isSuperAdmin && (
+        {user && user.role !== 'guest' && (
           <button
             type="button"
             onClick={handleExportMonitoring}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import { ChevronDown, ChevronRight, Filter, ChevronUp, Search, FileSpreadsheet } from 'lucide-react';
@@ -21,11 +21,14 @@ export const ScientificPotentialPage: React.FC<{
   setSearchQuery: (s: string) => void;
   filters: Filters;
   setFilters: (f: Filters) => void;
-  isSuperAdmin: boolean;
+  isSuperAdmin?: boolean;
   specialties: string[];
   defenseTypes: string[];
-}> = ({ user, facultyRatings, departmentRatings, professorsWithDetails, thesisDefenses, faculties, departments, positions, searchQuery, setSearchQuery, filters, setFilters, isSuperAdmin, specialties, defenseTypes }) => {
-  const [activeTab, setActiveTab] = useState('faculties');
+}> = ({ user, facultyRatings, departmentRatings, professorsWithDetails, thesisDefenses, faculties, departments, positions, searchQuery, setSearchQuery, filters, setFilters, specialties, defenseTypes }) => {
+  const isKafedraAdmin = (user?.role === 'kafedra_mudiri' || user?.role === 'admin') && Boolean(user?.departmentId);
+  const isDekan = user?.role === 'dekan' && Boolean(user?.facultyId);
+
+  const [activeTab, setActiveTab] = useState(() => isKafedraAdmin ? 'departments' : 'faculties');
   const [expandedDept, setExpandedDept] = useState<number | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -38,12 +41,38 @@ export const ScientificPotentialPage: React.FC<{
     type: '',
   });
 
-  const tabs = [
-    { id: 'faculties', label: 'Fakultetlar' },
-    { id: 'departments', label: 'Kafedralar' },
-    { id: 'academics', label: 'Ilmiy darajalilar' },
-    { id: 'defenses', label: 'Dissertatsiya himoyalari' },
-  ];
+  const tabs = useMemo(() => {
+    if (isKafedraAdmin) {
+      return [
+        { id: 'departments', label: 'Kafedra salohiyati' },
+        { id: 'academics', label: 'Ilmiy darajalilar' },
+        { id: 'defenses', label: 'Dissertatsiya himoyalari' },
+      ];
+    }
+    return [
+      { id: 'faculties', label: 'Fakultetlar' },
+      { id: 'departments', label: 'Kafedralar' },
+      { id: 'academics', label: 'Ilmiy darajalilar' },
+      { id: 'defenses', label: 'Dissertatsiya himoyalari' },
+    ];
+  }, [isKafedraAdmin]);
+
+  const scopedDepartmentRatings = useMemo(() => {
+    if (isKafedraAdmin && user.departmentId) {
+      return departmentRatings.filter(d => d.id === user.departmentId);
+    }
+    if (isDekan && user.facultyId) {
+      return departmentRatings.filter(d => d.facultyId === user.facultyId);
+    }
+    return departmentRatings;
+  }, [departmentRatings, isKafedraAdmin, isDekan, user?.departmentId, user?.facultyId]);
+
+  const scopedFacultyRatings = useMemo(() => {
+    if (isDekan && user.facultyId) {
+      return facultyRatings.filter(f => f.id === user.facultyId);
+    }
+    return facultyRatings;
+  }, [facultyRatings, isDekan, user?.facultyId]);
 
   useEffect(() => {
     // Reset filters when tab changes to ensure clean state
@@ -93,7 +122,7 @@ export const ScientificPotentialPage: React.FC<{
                       <ul className="space-y-1 pl-4">
                         {item.professors.map((prof: any) => (
                           <li key={prof.id} className="text-sm">
-                            {getProfessorName(prof)} - <span className="font-medium">{prof.position}, {prof.degree !== 'Yo‘q' ? prof.degree : ''} {prof.title !== 'Yo‘q' ? prof.title : ''}</span>
+                            {getProfessorName(prof)} - <span className="font-medium">{prof.position}, {prof.degree !== 'YoвЂq' ? prof.degree : ''} {prof.title !== 'YoвЂq' ? prof.title : ''}</span>
                           </li>
                         ))}
                       </ul>
@@ -108,7 +137,16 @@ export const ScientificPotentialPage: React.FC<{
     );
   };
 
-  const academics = useMemo(() => professorsWithDetails.filter(p => p.degree === 'PhD' || p.degree === 'DSc'), [professorsWithDetails]);
+  const academics = useMemo(() => {
+    let list = professorsWithDetails.filter(p => p.degree === 'PhD' || p.degree === 'DSc');
+    if (isKafedraAdmin && user.departmentId) {
+      list = list.filter(p => p.departmentId === user.departmentId);
+    } else if (isDekan && user.facultyId) {
+      const facDeptIds = departments.filter(d => d.facultyId === user.facultyId).map(d => d.id);
+      list = list.filter(p => facDeptIds.includes(p.departmentId));
+    }
+    return list;
+  }, [professorsWithDetails, isKafedraAdmin, isDekan, user?.departmentId, user?.facultyId, departments]);
 
   const filteredAcademics = useMemo(() => {
     let filtered = academics;
@@ -163,15 +201,15 @@ export const ScientificPotentialPage: React.FC<{
       return;
     }
     const dataToExport = filteredAcademics.map((prof, index) => ({
-      '№': (currentPage - 1) * pageSize + index + 1,
+      'в„–': (currentPage - 1) * pageSize + index + 1,
       'F.I.Sh.': getProfessorName(prof),
       'Jinsi': prof.gender,
-      'Tug‘ilgan sana': prof.birthDate,
+      'TugвЂilgan sana': prof.birthDate,
       'Yoshi': getAge(prof.birthDate),
-      'Fakultet': prof.faculty?.name || '—',
-      'Kafedra': prof.department?.name || '—',
+      'Fakultet': prof.faculty?.name || 'вЂ”',
+      'Kafedra': prof.department?.name || 'вЂ”',
       'Lavozimi': prof.position,
-      'O‘rindoshlik turi': prof.employmentType,
+      'OвЂrindoshlik turi': prof.employmentType,
       'Shtat birligi': prof.staffUnit,
       'Ilmiy darajasi': prof.degree,
       'Ilmiy unvoni': prof.title,
@@ -220,7 +258,7 @@ export const ScientificPotentialPage: React.FC<{
           )}
         </AnimatePresence>
         <div className="flex justify-end mb-4">
-          {user && isSuperAdmin && (
+          {user && user.role !== 'guest' && (
             <button
               type="button"
               onClick={handleExportAcademics}
@@ -234,7 +272,7 @@ export const ScientificPotentialPage: React.FC<{
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
               <tr>
-                <th className="px-4 py-3">№</th>
+                <th className="px-4 py-3">в„–</th>
                 <th className="px-4 py-3">F.I.Sh.</th>
                 <th className="px-4 py-3">Jinsi</th>
                 <th className="px-4 py-3">Tug'ilgan sana</th>
@@ -256,13 +294,13 @@ export const ScientificPotentialPage: React.FC<{
                   <td className="px-4 py-2 capitalize">{prof.gender}</td>
                   <td className="px-4 py-2">{prof.birthDate}</td>
                   <td className="px-4 py-2">{getAge(prof.birthDate)}</td>
-                  <td className="px-4 py-2">{prof.faculty?.name || '—'}</td>
-                  <td className="px-4 py-2">{prof.department?.name || '—'}</td>
+                  <td className="px-4 py-2">{prof.faculty?.name || 'вЂ”'}</td>
+                  <td className="px-4 py-2">{prof.department?.name || 'вЂ”'}</td>
                   <td className="px-4 py-2">{prof.position}</td>
                   <td className="px-4 py-2">{prof.employmentType}</td>
                   <td className="px-4 py-2">{prof.staffUnit.toFixed(2)}</td>
-                  <td className="px-4 py-2 font-semibold text-blue-600">{prof.degree !== 'Yo‘q' ? prof.degree : '-'}</td>
-                  <td className="px-4 py-2 font-semibold text-blue-600">{prof.title !== 'Yo‘q' ? prof.title : '-'}</td>
+                  <td className="px-4 py-2 font-semibold text-blue-600">{prof.degree !== 'YoвЂq' ? prof.degree : '-'}</td>
+                  <td className="px-4 py-2 font-semibold text-blue-600">{prof.title !== 'YoвЂq' ? prof.title : '-'}</td>
                 </tr>
               ))}
             </tbody>
@@ -310,15 +348,15 @@ export const ScientificPotentialPage: React.FC<{
     });
 
     const handleExportDefenses = () => {
-      if (user.role !== 'superadmin') {
-        alert('Faqat admin foydalanuvchilar ma\'lumotlarni eksport qila oladi');
+      if (!user || user.role === 'guest') {
+        alert('Mehmon foydalanuvchilar ma\'lumotlarni eksport qila olmaydi');
         return;
       }
       const dataToExport = sortedDefenses.map((d, index) => {
         const dept = departments.find(dep => dep.id === d.departmentId);
         const faculty = faculties.find(f => f.id === d.facultyId);
         return {
-          '№': index + 1,
+          'в„–': index + 1,
           'F.I.Sh.': getProfessorName(d),
           'Turi': d.type,
           'Mavzu': d.thesisTopic,
@@ -330,7 +368,7 @@ export const ScientificPotentialPage: React.FC<{
       });
 
       const ws = XLSX.utils.json_to_sheet(dataToExport, {
-        header: ['№', 'F.I.Sh.', 'Turi', 'Mavzu', 'Ilmiy rahbar', 'Fakultet', 'Kafedra', 'Himoya sanasi'],
+        header: ['в„–', 'F.I.Sh.', 'Turi', 'Mavzu', 'Ilmiy rahbar', 'Fakultet', 'Kafedra', 'Himoya sanasi'],
       });
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Himoyalar');
@@ -371,7 +409,7 @@ export const ScientificPotentialPage: React.FC<{
               {defenseTypes.map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          {user && isSuperAdmin && (
+          {user && user.role !== 'guest' && (
             <button
               type="button"
               onClick={handleExportDefenses}
@@ -385,7 +423,7 @@ export const ScientificPotentialPage: React.FC<{
           <table className="w-full text-sm text-left text-gray-500">
             <thead className="text-xs text-gray-700 uppercase bg-gray-50">
               <tr>
-                <th className="px-4 py-3">№</th>
+                <th className="px-4 py-3">в„–</th>
                 <th className="px-4 py-3">F.I.Sh.</th>
                 <th className="px-4 py-3">Turi</th>
                 <th className="px-4 py-3">Mavzu</th>
@@ -449,8 +487,8 @@ export const ScientificPotentialPage: React.FC<{
                 />
             </div>
         )}
-        {activeTab === 'faculties' && renderTable(facultyRatings)}
-        {activeTab === 'departments' && renderTable(departmentRatings)}
+        {activeTab === 'faculties' && renderTable(scopedFacultyRatings)}
+        {activeTab === 'departments' && renderTable(scopedDepartmentRatings)}
         {activeTab === 'academics' && renderAcademicsTable()}
         {activeTab === 'defenses' && renderDefensesTable()}
       </Card>

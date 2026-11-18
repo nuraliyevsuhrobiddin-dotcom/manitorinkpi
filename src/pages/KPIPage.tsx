@@ -18,8 +18,8 @@ export const KPIPage: React.FC<{
   scoringSystem: ScoringSystem;
   faculties: Faculty[];
   departments: Department[];
-  isSuperAdmin: boolean;
-}> = ({ user, professorsWithDetails, departmentRatings, facultyRatings, achievements, getScore, selectedYear, scoringSystem, faculties, departments, isSuperAdmin }) => {
+  isSuperAdmin?: boolean;
+}> = ({ user, professorsWithDetails, departmentRatings, facultyRatings, achievements, getScore, selectedYear, scoringSystem, faculties, departments, isSuperAdmin: _isSuperAdmin }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState<string>('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('');
@@ -27,6 +27,21 @@ export const KPIPage: React.FC<{
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 15;
+
+  const isKafedraAdmin = (user?.role === 'kafedra_mudiri' || user?.role === 'admin') && Boolean(user?.departmentId);
+  const isDekan = user?.role === 'dekan' && Boolean(user?.facultyId);
+
+  useEffect(() => {
+    if (isKafedraAdmin && user.departmentId) {
+      setSelectedDepartment(String(user.departmentId));
+      const parentDept = departments.find(d => d.id === user.departmentId);
+      if (parentDept?.facultyId) {
+        setSelectedFaculty(String(parentDept.facultyId));
+      }
+    } else if (isDekan && user.facultyId) {
+      setSelectedFaculty(String(user.facultyId));
+    }
+  }, [isKafedraAdmin, isDekan, user?.departmentId, user?.facultyId, departments]);
 
   const filteredDepartments = useMemo(() => {
     if (!selectedFaculty) return departments;
@@ -111,7 +126,7 @@ export const KPIPage: React.FC<{
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Professor-o'qituvchilarning KPI ko'rsatkichlari</h1>
-        {user && isSuperAdmin && (
+        {user && user.role !== 'guest' && (
           <button
             type="button"
             onClick={handleExportKPI}
@@ -139,7 +154,8 @@ export const KPIPage: React.FC<{
             <select
               value={selectedFaculty}
               onChange={e => { setSelectedFaculty(e.target.value); setSelectedDepartment(''); }}
-              className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm"
+              className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              disabled={isKafedraAdmin || isDekan}
             >
               <option value="">Barcha fakultetlar</option>
               {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -150,8 +166,8 @@ export const KPIPage: React.FC<{
             <select
               value={selectedDepartment}
               onChange={e => setSelectedDepartment(e.target.value)}
-              className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm"
-              disabled={!selectedFaculty && filteredDepartments.length !== departments.length}
+              className="w-full bg-white border border-gray-300 rounded-lg p-2 text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
+              disabled={isKafedraAdmin || (!selectedFaculty && filteredDepartments.length !== departments.length)}
             >
               <option value="">Barcha kafedralar</option>
               {filteredDepartments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}

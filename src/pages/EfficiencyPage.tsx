@@ -9,7 +9,8 @@ export const EfficiencyPage: React.FC<{
   departmentRatings: any[];
   professorsWithDetails: any[];
   searchQuery: string;
-}> = ({ facultyRatings, departmentRatings, professorsWithDetails, searchQuery }) => {
+  user?: any;
+}> = ({ facultyRatings, departmentRatings, professorsWithDetails, searchQuery, user }) => {
   const [activeTab, setActiveTab] = useState('bonus-calc');
 
   // Bonus calculator settings (adjustable)
@@ -149,6 +150,20 @@ export const EfficiencyPage: React.FC<{
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      {user?.role === 'buxgalter' && (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200 dark:border-amber-900/40 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-amber-500 text-white shadow-md shadow-amber-500/20">
+              <Calculator size={22} />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-900 dark:text-amber-200">Moliya va Buxgalteriya Bo'limi</h3>
+              <p className="text-xs text-amber-700 dark:text-amber-400">KPI natijalari asosida oylik differensial ustama buyrug'i loyihasini shakllantirish va eksport qilish</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
@@ -166,11 +181,10 @@ export const EfficiencyPage: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`${
-                activeTab === tab.id
+              className={`${activeTab === tab.id
                   ? 'border-indigo-600 text-indigo-600 dark:text-indigo-400 font-bold'
                   : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
-              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-2 transition-all`}
+                } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center gap-2 transition-all`}
             >
               <tab.icon size={16} />
               {tab.label}
