@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Printer } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { DonutChart } from '../ui/DonutChart';
 import { Modal } from '../ui/Modal';
@@ -50,9 +51,18 @@ export const ProfessorKPIDetailModal: React.FC<{
 
   return (
     <Modal open={open} onClose={onClose} className="max-w-4xl">
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold text-gray-800">{professor.name}</h2>
-        <p className="text-sm text-gray-500">{professor.position}, {professor.department?.name || '—'}</p>
+      <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100 dark:border-gray-800">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">{professor.name}</h2>
+          <p className="text-sm text-gray-500">{professor.position}, {professor.department?.name || '—'}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 text-slate-700 dark:text-slate-200 text-xs font-semibold shadow-sm transition-all print:hidden"
+        >
+          <Printer size={15} /> Portfolioni chop etish / PDF
+        </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -131,9 +141,22 @@ export const ProfessorKPIDetailModal: React.FC<{
               {professorAchievements.length > 0 ? professorAchievements.map(ach => (
                 <tr key={ach.id} className="border-b">
                   <td className="px-4 py-2 capitalize">{ach.type.replace(/_/g, ' ')}</td>
-                  <td className="px-4 py-2">{ach.subType}</td>
+                  <td className="px-4 py-2">
+                    <span className="font-medium">{ach.subType}</span>
+                    {ach.documentUrl && (
+                      <a
+                        href={ach.documentUrl.startsWith('http') ? ach.documentUrl : `https://${ach.documentUrl}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-xs text-indigo-600 hover:underline mt-0.5 print:hidden"
+                      >
+                        🔗 Asoslovchi havola ↗
+                      </a>
+                    )}
+                    {ach.notes && <p className="text-[11px] text-gray-500 italic mt-0.5">📝 {ach.notes}</p>}
+                  </td>
                   <td className="px-4 py-2 text-center">{ach.count}</td>
-                  <td className="px-4 py-2 text-center">{ach.quarter}</td>
+                  <td className="px-4 py-2 text-center">{ach.quarter}-chorak</td>
                   <td className="px-4 py-2 text-right font-semibold">{(getScore(ach.type, ach.subType) * ach.count).toFixed(2)}</td>
                 </tr>
               )) : (
@@ -145,6 +168,22 @@ export const ProfessorKPIDetailModal: React.FC<{
           </table>
         </div>
       </Card>
+
+      {/* Signature block for formal university printing */}
+      <div className="hidden print:flex justify-between items-end mt-12 pt-6 border-t border-gray-400 text-xs">
+        <div>
+          <p className="font-bold">Professor-o'qituvchi:</p>
+          <p className="mt-4">_________________ ({professor.name})</p>
+        </div>
+        <div>
+          <p className="font-bold">Kafedra mudiri:</p>
+          <p className="mt-4">_________________</p>
+        </div>
+        <div>
+          <p className="font-bold">Sana:</p>
+          <p className="mt-4">"____" ____________ {new Date().getFullYear()}-yil</p>
+        </div>
+      </div>
     </Modal>
   );
 };
