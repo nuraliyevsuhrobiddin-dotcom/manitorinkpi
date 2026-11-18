@@ -313,17 +313,17 @@ class LocalDataRepository {
             // kpi_app_state_backup wraps data in PROFESSORS/FACULTIES keys directly
             const normalized: ConstantsData = {
               ...DEFAULT_DATA,
-              FACULTIES:    localData.FACULTIES    || localData.faculties    || DEFAULT_DATA.FACULTIES,
-              DEPARTMENTS:  localData.DEPARTMENTS  || localData.departments  || DEFAULT_DATA.DEPARTMENTS,
-              PROFESSORS:   localData.PROFESSORS   || localData.professors   || DEFAULT_DATA.PROFESSORS,
+              FACULTIES: localData.FACULTIES || localData.faculties || DEFAULT_DATA.FACULTIES,
+              DEPARTMENTS: localData.DEPARTMENTS || localData.departments || DEFAULT_DATA.DEPARTMENTS,
+              PROFESSORS: localData.PROFESSORS || localData.professors || DEFAULT_DATA.PROFESSORS,
               ACHIEVEMENTS: localData.ACHIEVEMENTS || localData.achievements || DEFAULT_DATA.ACHIEVEMENTS,
-              PLANS:        localData.PLANS        || localData.plans        || DEFAULT_DATA.PLANS,
-              PROJECTS:     localData.PROJECTS     || localData.projects     || DEFAULT_DATA.PROJECTS,
+              PLANS: localData.PLANS || localData.plans || DEFAULT_DATA.PLANS,
+              PROJECTS: localData.PROJECTS || localData.projects || DEFAULT_DATA.PROJECTS,
               THESIS_DEFENSES: localData.THESIS_DEFENSES || localData.thesisDefenses || DEFAULT_DATA.THESIS_DEFENSES,
               SCORING_SYSTEM: localData.SCORING_SYSTEM || localData.scoringSystem || DEFAULT_DATA.SCORING_SYSTEM,
-              USERS:        localData.USERS        || localData.users        || DEFAULT_DATA.USERS,
-              DIVISIONS:    localData.DIVISIONS    || localData.divisions    || DEFAULT_DATA.DIVISIONS,
-              POSITIONS:    localData.POSITIONS    || localData.positions    || DEFAULT_DATA.POSITIONS,
+              USERS: localData.USERS || localData.users || DEFAULT_DATA.USERS,
+              DIVISIONS: localData.DIVISIONS || localData.divisions || DEFAULT_DATA.DIVISIONS,
+              POSITIONS: localData.POSITIONS || localData.positions || DEFAULT_DATA.POSITIONS,
             };
             if ((normalized.PROFESSORS?.length ?? 0) > 0 || (normalized.FACULTIES?.length ?? 0) > 0) {
               this.data = normalized;
@@ -387,15 +387,15 @@ class LocalDataRepository {
 
     // Fetch all tables in parallel — each failure is caught individually
     const settled = await Promise.allSettled([
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.faculties,      null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.departments,    null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.professors,     null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.plans,          null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.planItems,      null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.achievements,   null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.projects,       null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.faculties, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.departments, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.professors, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.plans, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.planItems, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.achievements, null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.projects, null, 'select=*'),
       fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.thesisDefenses, null, 'select=*'),
-      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.users,          null, 'select=*'),
+      fetchSupabaseData<Record<string, unknown>>(SUPABASE_REST_PATHS.users, null, 'select=*'),
     ]);
 
     const [fRes, dRes, pRes, plRes, piRes, aRes, prRes, tdRes, uRes] = settled;
@@ -415,22 +415,22 @@ class LocalDataRepository {
     // Get existing data as fallback so we never wipe rows on a bad response
     const existing = this.data;
 
-    const facultiesRaw    = unwrap(fRes,  'faculties',       (existing?.FACULTIES        as any[]) || []);
-    const departmentsRaw  = unwrap(dRes,  'departments',     (existing?.DEPARTMENTS      as any[]) || []);
-    const professorsRaw   = unwrap(pRes,  'professors',      (existing?.PROFESSORS       as any[]) || []);
-    const plansRaw        = unwrap(plRes, 'plans',           []);
-    const planItemsRaw    = unwrap(piRes, 'plan_items',      []);
-    const achievementsRaw = unwrap(aRes,  'achievements',    (existing?.ACHIEVEMENTS     as any[]) || []);
-    const projectsRaw     = unwrap(prRes, 'projects',        (existing?.PROJECTS         as any[]) || []);
-    const thesisRaw       = unwrap(tdRes, 'thesis_defenses', (existing?.THESIS_DEFENSES  as any[]) || []);
-    const appUsersRaw     = unwrap(uRes,  'app_users',       []);
+    const facultiesRaw = unwrap(fRes, 'faculties', (existing?.FACULTIES as any[]) || []);
+    const departmentsRaw = unwrap(dRes, 'departments', (existing?.DEPARTMENTS as any[]) || []);
+    const professorsRaw = unwrap(pRes, 'professors', (existing?.PROFESSORS as any[]) || []);
+    const plansRaw = unwrap(plRes, 'plans', []);
+    const planItemsRaw = unwrap(piRes, 'plan_items', []);
+    const achievementsRaw = unwrap(aRes, 'achievements', (existing?.ACHIEVEMENTS as any[]) || []);
+    const projectsRaw = unwrap(prRes, 'projects', (existing?.PROJECTS as any[]) || []);
+    const thesisRaw = unwrap(tdRes, 'thesis_defenses', (existing?.THESIS_DEFENSES as any[]) || []);
+    const appUsersRaw = unwrap(uRes, 'app_users', []);
 
-    const facultyList    = facultiesRaw.map(toFaculty);
+    const facultyList = facultiesRaw.map(toFaculty);
     const departmentList = departmentsRaw.map(toDepartment);
-    const professorList  = professorsRaw.map(toProfessor);
-    const planList       = toPlan(plansRaw, planItemsRaw);
-    const achievementList= achievementsRaw.map(toAchievement);
-    const projectList    = projectsRaw.map(toProject);
+    const professorList = professorsRaw.map(toProfessor);
+    const planList = toPlan(plansRaw, planItemsRaw);
+    const achievementList = achievementsRaw.map(toAchievement);
+    const projectList = projectsRaw.map(toProject);
     const thesisDefenseList = thesisRaw.map(toThesisDefense);
     const remoteUserList = appUsersRaw.map(toUser);
 
@@ -441,13 +441,13 @@ class LocalDataRepository {
     return {
       ...DEFAULT_DATA,
       ...(existing || {}),
-      FACULTIES:       guardArr(facultyList,      (existing?.FACULTIES       as any[]) || []),
-      DEPARTMENTS:     guardArr(departmentList,   (existing?.DEPARTMENTS     as any[]) || []),
-      PROFESSORS:      guardArr(professorList,    (existing?.PROFESSORS      as any[]) || []),
-      PLANS:           planList.length > 0 ? planList : ((existing?.PLANS as any[]) || []),
-      ACHIEVEMENTS:    guardArr(achievementList,  (existing?.ACHIEVEMENTS    as any[]) || []),
-      PROJECTS:        guardArr(projectList,      (existing?.PROJECTS        as any[]) || []),
-      THESIS_DEFENSES: guardArr(thesisDefenseList,(existing?.THESIS_DEFENSES as any[]) || []),
+      FACULTIES: guardArr(facultyList, (existing?.FACULTIES as any[]) || []),
+      DEPARTMENTS: guardArr(departmentList, (existing?.DEPARTMENTS as any[]) || []),
+      PROFESSORS: guardArr(professorList, (existing?.PROFESSORS as any[]) || []),
+      PLANS: planList.length > 0 ? planList : ((existing?.PLANS as any[]) || []),
+      ACHIEVEMENTS: guardArr(achievementList, (existing?.ACHIEVEMENTS as any[]) || []),
+      PROJECTS: guardArr(projectList, (existing?.PROJECTS as any[]) || []),
+      THESIS_DEFENSES: guardArr(thesisDefenseList, (existing?.THESIS_DEFENSES as any[]) || []),
       USERS: mergeUsers((existing?.USERS as User[]) || DEFAULT_DATA.USERS, remoteUserList),
     };
   }

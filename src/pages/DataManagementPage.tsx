@@ -155,31 +155,31 @@ export const DataManagementPage: React.FC<{
   const filteredProjects = useMemo(() => projects.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())), [projects, searchQuery]);
   const filteredDefenses = useMemo(() => thesisDefenses.filter(d => getProfessorName(d).toLowerCase().includes(searchQuery.toLowerCase())), [thesisDefenses, searchQuery]);
   const filteredCriteria = useMemo(() => {
-      if (!searchQuery) return scoringSystem;
-      const lowerQuery = searchQuery.toLowerCase();
-      const filtered: ScoringSystem = {};
-      for (const type in scoringSystem) {
-          if (type.replace(/_/g, ' ').toLowerCase().includes(lowerQuery)) {
-              // @ts-ignore
-              filtered[type] = scoringSystem[type];
-              continue;
-          }
-          // @ts-ignore
-          const subTypes = scoringSystem[type];
-          const matchingSubTypes: { [key: string]: any } = {};
-          for (const subType in subTypes) {
-              if (subType.toLowerCase().includes(lowerQuery) || subTypes[subType].description.toLowerCase().includes(lowerQuery)) {
-                  matchingSubTypes[subType] = subTypes[subType];
-              }
-          }
-          if (Object.keys(matchingSubTypes).length > 0) {
-              // @ts-ignore
-              if (!filtered[type]) filtered[type] = {};
-              // @ts-ignore
-              Object.assign(filtered[type], matchingSubTypes);
-          }
+    if (!searchQuery) return scoringSystem;
+    const lowerQuery = searchQuery.toLowerCase();
+    const filtered: ScoringSystem = {};
+    for (const type in scoringSystem) {
+      if (type.replace(/_/g, ' ').toLowerCase().includes(lowerQuery)) {
+        // @ts-ignore
+        filtered[type] = scoringSystem[type];
+        continue;
       }
-      return filtered;
+      // @ts-ignore
+      const subTypes = scoringSystem[type];
+      const matchingSubTypes: { [key: string]: any } = {};
+      for (const subType in subTypes) {
+        if (subType.toLowerCase().includes(lowerQuery) || subTypes[subType].description.toLowerCase().includes(lowerQuery)) {
+          matchingSubTypes[subType] = subTypes[subType];
+        }
+      }
+      if (Object.keys(matchingSubTypes).length > 0) {
+        // @ts-ignore
+        if (!filtered[type]) filtered[type] = {};
+        // @ts-ignore
+        Object.assign(filtered[type], matchingSubTypes);
+      }
+    }
+    return filtered;
   }, [scoringSystem, searchQuery]);
   const filteredUsers = useMemo(() => users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase())), [users, searchQuery]);
 
@@ -336,7 +336,7 @@ export const DataManagementPage: React.FC<{
 
           const patronymic = String(row['Otasining ismi'] || row['otasining_ismi'] || row['Patronymic'] || '').trim();
           const deptNameRaw = String(row['Kafedra'] || row['kafedra'] || row['Department'] || '').trim().toLowerCase();
-          
+
           const matchedDept = departments.find(d => d.name.toLowerCase() === deptNameRaw || d.name.toLowerCase().includes(deptNameRaw)) || departments[0];
           const deptId = matchedDept ? matchedDept.id : 1;
 
@@ -614,155 +614,155 @@ export const DataManagementPage: React.FC<{
   }, [editDefenseForm.facultyId, departments]);
 
   const renderContent = () => {
-    switch(activeTab) {
+    switch (activeTab) {
       case 'faculties': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi fakultet qo'shish</h3>
-              <form onSubmit={handleAddFaculty} className="space-y-4" noValidate>
-                <div>
-                  <input type="text" placeholder="Fakultet nomi" value={facultyName} onChange={e => { setFacultyName(e.target.value); setFacultyErrors({}); }} className={`w-full p-2 border rounded ${facultyErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {facultyErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{facultyErrors.name}</p>}
-                </div>
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud fakultetlar</h3>
-              <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredFaculties.map(f => (
-                <li key={f.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{f.name}</span>
-                  <span>
-                    <button onClick={() => { setEditFacultyModal({ open: true, faculty: f }); setEditFacultyName(f.name); }} className="text-green-600 mr-2"><Edit size={16} /></button>
-                    <button onClick={() => setDeleteFacultyModal({ open: true, faculty: f })} className="text-red-600"><Trash2 size={16} /></button>
-                  </span>
-                </li>))}
-              </ul>
-            </Card>
-            <Modal open={editFacultyModal.open} onClose={() => setEditFacultyModal({ open: false, faculty: null })}>
-              <h2 className="text-lg font-bold mb-2">Fakultetni tahrirlash</h2>
-              <input type="text" className="w-full border rounded p-2 mb-2" value={editFacultyName} onChange={e => setEditFacultyName(e.target.value)} />
-              <div className="flex justify-end"><button onClick={() => setEditFacultyModal({ open: false, faculty: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditFaculty} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
-            </Modal>
-            <Modal open={deleteFacultyModal.open} onClose={() => setDeleteFacultyModal({ open: false, faculty: null })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deleteFacultyModal.faculty?.name}</b> fakultetini o'chirishga ishonchingiz komilmi? Bu fakultetga tegishli barcha kafedralar ham o'chiriladi.</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeleteFacultyModal({ open: false, faculty: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteFaculty} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
-            </Modal>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Yangi fakultet qo'shish</h3>
+            <form onSubmit={handleAddFaculty} className="space-y-4" noValidate>
+              <div>
+                <input type="text" placeholder="Fakultet nomi" value={facultyName} onChange={e => { setFacultyName(e.target.value); setFacultyErrors({}); }} className={`w-full p-2 border rounded ${facultyErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {facultyErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{facultyErrors.name}</p>}
+              </div>
+              <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Mavjud fakultetlar</h3>
+            <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredFaculties.map(f => (
+              <li key={f.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{f.name}</span>
+                <span>
+                  <button onClick={() => { setEditFacultyModal({ open: true, faculty: f }); setEditFacultyName(f.name); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                  <button onClick={() => setDeleteFacultyModal({ open: true, faculty: f })} className="text-red-600"><Trash2 size={16} /></button>
+                </span>
+              </li>))}
+            </ul>
+          </Card>
+          <Modal open={editFacultyModal.open} onClose={() => setEditFacultyModal({ open: false, faculty: null })}>
+            <h2 className="text-lg font-bold mb-2">Fakultetni tahrirlash</h2>
+            <input type="text" className="w-full border rounded p-2 mb-2" value={editFacultyName} onChange={e => setEditFacultyName(e.target.value)} />
+            <div className="flex justify-end"><button onClick={() => setEditFacultyModal({ open: false, faculty: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditFaculty} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+          </Modal>
+          <Modal open={deleteFacultyModal.open} onClose={() => setDeleteFacultyModal({ open: false, faculty: null })}>
+            <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
+            <p><b>{deleteFacultyModal.faculty?.name}</b> fakultetini o'chirishga ishonchingiz komilmi? Bu fakultetga tegishli barcha kafedralar ham o'chiriladi.</p>
+            <div className="flex justify-end mt-4"><button onClick={() => setDeleteFacultyModal({ open: false, faculty: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteFaculty} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+          </Modal>
+        </div>
       );
       case 'departments': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi kafedra qo'shish</h3>
-              <form onSubmit={handleAddDepartment} className="space-y-4" noValidate>
-                <div>
-                  <input type="text" placeholder="Kafedra nomi" value={deptName} onChange={e => { setDeptName(e.target.value); setDeptErrors(p => ({ ...p, name: undefined })); }} className={`w-full p-2 border rounded ${deptErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {deptErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.name}</p>}
-                </div>
-                <div>
-                  <select value={deptFacultyId} onChange={e => { setDeptFacultyId(e.target.value); setDeptErrors(p => ({ ...p, facultyId: undefined })); }} className={`w-full p-2 bg-white border rounded ${deptErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
-                    <option value="" disabled>Fakultetni tanlang</option>
-                    {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                  </select>
-                  {deptErrors.facultyId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.facultyId}</p>}
-                </div>
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud kafedralar</h3>
-              <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredDepartments.map(d => (
-                <li key={d.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center">
-                  <span><span className="font-semibold">{d.name}</span><span className="text-xs text-gray-500 ml-2">{faculties.find(f => f.id === d.facultyId)?.name}</span></span>
-                  <span>
-                    <button onClick={() => { setEditDeptModal({ open: true, dept: d }); setEditDeptName(d.name); setEditDeptFacultyId(d.facultyId); }} className="text-green-600 mr-2"><Edit size={16} /></button>
-                    <button onClick={() => setDeleteDeptModal({ open: true, dept: d })} className="text-red-600"><Trash2 size={16} /></button>
-                  </span>
-                </li>))}
-              </ul>
-            </Card>
-            <Modal open={editDeptModal.open} onClose={() => setEditDeptModal({ open: false, dept: null })}>
-              <h2 className="text-lg font-bold mb-2">Kafedrani tahrirlash</h2>
-              <input type="text" className="w-full border rounded p-2 mb-2" value={editDeptName} onChange={e => setEditDeptName(e.target.value)} />
-              <select className="w-full border rounded p-2 mb-2 bg-white" value={editDeptFacultyId} onChange={e => setEditDeptFacultyId(e.target.value)}>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
-              <div className="flex justify-end"><button onClick={() => setEditDeptModal({ open: false, dept: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditDept} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
-            </Modal>
-            <Modal open={deleteDeptModal.open} onClose={() => setDeleteDeptModal({ open: false, dept: null })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deleteDeptModal.dept?.name}</b> kafedrasini o'chirishga ishonchingiz komilmi? Bu kafedraga tegishli professorlar ham o'chiriladi.</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeleteDeptModal({ open: false, dept: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteDept} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
-            </Modal>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Yangi kafedra qo'shish</h3>
+            <form onSubmit={handleAddDepartment} className="space-y-4" noValidate>
+              <div>
+                <input type="text" placeholder="Kafedra nomi" value={deptName} onChange={e => { setDeptName(e.target.value); setDeptErrors(p => ({ ...p, name: undefined })); }} className={`w-full p-2 border rounded ${deptErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {deptErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.name}</p>}
+              </div>
+              <div>
+                <select value={deptFacultyId} onChange={e => { setDeptFacultyId(e.target.value); setDeptErrors(p => ({ ...p, facultyId: undefined })); }} className={`w-full p-2 bg-white border rounded ${deptErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}>
+                  <option value="" disabled>Fakultetni tanlang</option>
+                  {faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                {deptErrors.facultyId && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{deptErrors.facultyId}</p>}
+              </div>
+              <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Mavjud kafedralar</h3>
+            <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredDepartments.map(d => (
+              <li key={d.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center">
+                <span><span className="font-semibold">{d.name}</span><span className="text-xs text-gray-500 ml-2">{faculties.find(f => f.id === d.facultyId)?.name}</span></span>
+                <span>
+                  <button onClick={() => { setEditDeptModal({ open: true, dept: d }); setEditDeptName(d.name); setEditDeptFacultyId(d.facultyId); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                  <button onClick={() => setDeleteDeptModal({ open: true, dept: d })} className="text-red-600"><Trash2 size={16} /></button>
+                </span>
+              </li>))}
+            </ul>
+          </Card>
+          <Modal open={editDeptModal.open} onClose={() => setEditDeptModal({ open: false, dept: null })}>
+            <h2 className="text-lg font-bold mb-2">Kafedrani tahrirlash</h2>
+            <input type="text" className="w-full border rounded p-2 mb-2" value={editDeptName} onChange={e => setEditDeptName(e.target.value)} />
+            <select className="w-full border rounded p-2 mb-2 bg-white" value={editDeptFacultyId} onChange={e => setEditDeptFacultyId(e.target.value)}>{faculties.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}</select>
+            <div className="flex justify-end"><button onClick={() => setEditDeptModal({ open: false, dept: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditDept} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+          </Modal>
+          <Modal open={deleteDeptModal.open} onClose={() => setDeleteDeptModal({ open: false, dept: null })}>
+            <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
+            <p><b>{deleteDeptModal.dept?.name}</b> kafedrasini o'chirishga ishonchingiz komilmi? Bu kafedraga tegishli professorlar ham o'chiriladi.</p>
+            <div className="flex justify-end mt-4"><button onClick={() => setDeleteDeptModal({ open: false, dept: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteDept} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+          </Modal>
+        </div>
       );
       case 'divisions': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi bo'lim qo'shish</h3>
-              <form onSubmit={handleAddDivision} className="space-y-4" noValidate>
-                <div>
-                  <input type="text" placeholder="Bo'lim nomi" value={divisionName} onChange={e => { setDivisionName(e.target.value); setDivisionErrors({}); }} className={`w-full p-2 border rounded ${divisionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {divisionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{divisionErrors.name}</p>}
-                </div>
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud bo'limlar</h3>
-              <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredDivisions.map(d => (
-                <li key={d.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{d.name}</span>
-                  <span>
-                    <button onClick={() => { setEditDivisionModal({ open: true, division: d }); setEditDivisionName(d.name); }} className="text-green-600 mr-2"><Edit size={16} /></button>
-                    <button onClick={() => setDeleteDivisionModal({ open: true, division: d })} className="text-red-600"><Trash2 size={16} /></button>
-                  </span>
-                </li>))}
-              </ul>
-            </Card>
-            <Modal open={editDivisionModal.open} onClose={() => setEditDivisionModal({ open: false, division: null })}>
-              <h2 className="text-lg font-bold mb-2">Bo'limni tahrirlash</h2>
-              <input type="text" className="w-full border rounded p-2 mb-2" value={editDivisionName} onChange={e => setEditDivisionName(e.target.value)} />
-              <div className="flex justify-end"><button onClick={() => setEditDivisionModal({ open: false, division: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditDivision} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
-            </Modal>
-            <Modal open={deleteDivisionModal.open} onClose={() => setDeleteDivisionModal({ open: false, division: null })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deleteDivisionModal.division?.name}</b> bo'limini o'chirishga ishonchingiz komilmi?</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeleteDivisionModal({ open: false, division: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteDivision} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
-            </Modal>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Yangi bo'lim qo'shish</h3>
+            <form onSubmit={handleAddDivision} className="space-y-4" noValidate>
+              <div>
+                <input type="text" placeholder="Bo'lim nomi" value={divisionName} onChange={e => { setDivisionName(e.target.value); setDivisionErrors({}); }} className={`w-full p-2 border rounded ${divisionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {divisionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{divisionErrors.name}</p>}
+              </div>
+              <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Mavjud bo'limlar</h3>
+            <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredDivisions.map(d => (
+              <li key={d.id} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{d.name}</span>
+                <span>
+                  <button onClick={() => { setEditDivisionModal({ open: true, division: d }); setEditDivisionName(d.name); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                  <button onClick={() => setDeleteDivisionModal({ open: true, division: d })} className="text-red-600"><Trash2 size={16} /></button>
+                </span>
+              </li>))}
+            </ul>
+          </Card>
+          <Modal open={editDivisionModal.open} onClose={() => setEditDivisionModal({ open: false, division: null })}>
+            <h2 className="text-lg font-bold mb-2">Bo'limni tahrirlash</h2>
+            <input type="text" className="w-full border rounded p-2 mb-2" value={editDivisionName} onChange={e => setEditDivisionName(e.target.value)} />
+            <div className="flex justify-end"><button onClick={() => setEditDivisionModal({ open: false, division: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditDivision} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+          </Modal>
+          <Modal open={deleteDivisionModal.open} onClose={() => setDeleteDivisionModal({ open: false, division: null })}>
+            <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
+            <p><b>{deleteDivisionModal.division?.name}</b> bo'limini o'chirishga ishonchingiz komilmi?</p>
+            <div className="flex justify-end mt-4"><button onClick={() => setDeleteDivisionModal({ open: false, division: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteDivision} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+          </Modal>
+        </div>
       );
       case 'positions': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi lavozim qo'shish</h3>
-              <form onSubmit={handleAddPosition} className="space-y-4" noValidate>
-                <div>
-                  <input type="text" placeholder="Lavozim nomi" value={positionName} onChange={e => { setPositionName(e.target.value); setPositionErrors({}); }} className={`w-full p-2 border rounded ${positionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {positionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{positionErrors.name}</p>}
-                </div>
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud lavozimlar</h3>
-              <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredPositions.map(p => (
-                <li key={p} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{p}</span>
-                  <span>
-                    <button onClick={() => { setEditPositionModal({ open: true, oldName: p }); setEditPositionName(p); }} className="text-green-600 mr-2"><Edit size={16} /></button>
-                    <button onClick={() => setDeletePositionModal({ open: true, name: p })} className="text-red-600"><Trash2 size={16} /></button>
-                  </span>
-                </li>))}
-              </ul>
-            </Card>
-            <Modal open={editPositionModal.open} onClose={() => setEditPositionModal({ open: false, oldName: '' })}>
-              <h2 className="text-lg font-bold mb-2">Lavozimni tahrirlash</h2>
-              <input type="text" className="w-full border rounded p-2 mb-2" value={editPositionName} onChange={e => setEditPositionName(e.target.value)} />
-              <div className="flex justify-end"><button onClick={() => setEditPositionModal({ open: false, oldName: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditPosition} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
-            </Modal>
-            <Modal open={deletePositionModal.open} onClose={() => setDeletePositionModal({ open: false, name: '' })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deletePositionModal.name}</b> lavozimini o'chirishga ishonchingiz komilmi? Bu lavozimdagi professorlar ma'lumotiga ta'sir qilishi mumkin.</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeletePositionModal({ open: false, name: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeletePosition} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
-            </Modal>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Yangi lavozim qo'shish</h3>
+            <form onSubmit={handleAddPosition} className="space-y-4" noValidate>
+              <div>
+                <input type="text" placeholder="Lavozim nomi" value={positionName} onChange={e => { setPositionName(e.target.value); setPositionErrors({}); }} className={`w-full p-2 border rounded ${positionErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {positionErrors.name && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{positionErrors.name}</p>}
+              </div>
+              <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Mavjud lavozimlar</h3>
+            <ul className="space-y-2 max-h-96 overflow-y-auto">{filteredPositions.map(p => (
+              <li key={p} className="p-3 bg-gray-50 rounded-md flex justify-between items-center"><span>{p}</span>
+                <span>
+                  <button onClick={() => { setEditPositionModal({ open: true, oldName: p }); setEditPositionName(p); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                  <button onClick={() => setDeletePositionModal({ open: true, name: p })} className="text-red-600"><Trash2 size={16} /></button>
+                </span>
+              </li>))}
+            </ul>
+          </Card>
+          <Modal open={editPositionModal.open} onClose={() => setEditPositionModal({ open: false, oldName: '' })}>
+            <h2 className="text-lg font-bold mb-2">Lavozimni tahrirlash</h2>
+            <input type="text" className="w-full border rounded p-2 mb-2" value={editPositionName} onChange={e => setEditPositionName(e.target.value)} />
+            <div className="flex justify-end"><button onClick={() => setEditPositionModal({ open: false, oldName: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditPosition} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+          </Modal>
+          <Modal open={deletePositionModal.open} onClose={() => setDeletePositionModal({ open: false, name: '' })}>
+            <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
+            <p><b>{deletePositionModal.name}</b> lavozimini o'chirishga ishonchingiz komilmi? Bu lavozimdagi professorlar ma'lumotiga ta'sir qilishi mumkin.</p>
+            <div className="flex justify-end mt-4"><button onClick={() => setDeletePositionModal({ open: false, name: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeletePosition} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+          </Modal>
+        </div>
       );
       case 'professors': return (
         <div className="space-y-6">
@@ -911,7 +911,7 @@ export const DataManagementPage: React.FC<{
                     <td className="p-2 text-xs">{p.leaderPosition}</td>
                     <td className="p-2 text-xs">{p.totalFunding} mln</td>
                     <td className="p-2 whitespace-nowrap">
-                      <button onClick={() => { setEditProjectModal({ open: true, project: p }); setEditProjForm({...p}); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                      <button onClick={() => { setEditProjectModal({ open: true, project: p }); setEditProjForm({ ...p }); }} className="text-green-600 mr-2"><Edit size={16} /></button>
                       <button onClick={() => setDeleteProjectModal({ open: true, project: p })} className="text-red-600"><Trash2 size={16} /></button>
                     </td>
                   </tr>
@@ -994,7 +994,7 @@ export const DataManagementPage: React.FC<{
                     <td className="p-2 text-xs truncate max-w-xs">{d.thesisTopic}</td>
                     <td className="p-2 text-xs">{d.defenseDate}</td>
                     <td className="p-2 whitespace-nowrap">
-                      <button onClick={() => { setEditDefenseModal({ open: true, defense: d }); setEditDefenseForm({...d}); }} className="text-green-600 mr-2"><Edit size={16} /></button>
+                      <button onClick={() => { setEditDefenseModal({ open: true, defense: d }); setEditDefenseForm({ ...d }); }} className="text-green-600 mr-2"><Edit size={16} /></button>
                       <button onClick={() => setDeleteDefenseModal({ open: true, defense: d })} className="text-red-600"><Trash2 size={16} /></button>
                     </td>
                   </tr>
@@ -1031,155 +1031,157 @@ export const DataManagementPage: React.FC<{
         </div>
       );
       case 'criteria': return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Yangi mezon qo'shish</h3>
-              <form onSubmit={handleAddCriterion} className="space-y-4" noValidate>
-                <div>
-                  <input type="text" name="type" placeholder="Turi (masalan, publication)" value={criterionForm.type} onChange={e => { setCriterionForm(p => ({...p, type: e.target.value})); setCriterionErrors(p => ({...p, type: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.type ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {criterionErrors.type && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.type}</p>}
-                </div>
-                <div>
-                  <input type="text" name="subType" placeholder="Nomi (masalan, Scopus Q1)" value={criterionForm.subType} onChange={e => { setCriterionForm(p => ({...p, subType: e.target.value})); setCriterionErrors(p => ({...p, subType: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.subType ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {criterionErrors.subType && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.subType}</p>}
-                </div>
-                <div>
-                  <input type="number" name="score" placeholder="Ball" value={criterionForm.score} onChange={e => { setCriterionForm(p => ({...p, score: e.target.value})); setCriterionErrors(p => ({...p, score: undefined})); }} className={`w-full p-2 border rounded ${criterionErrors.score ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
-                  {criterionErrors.score && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.score}</p>}
-                </div>
-                <input type="text" name="description" placeholder="Tavsifi" value={criterionForm.description} onChange={e => setCriterionForm(p => ({...p, description: e.target.value}))} className="w-full p-2 border border-gray-300 rounded" />
-                <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
-              </form>
-            </Card>
-            <Card>
-              <h3 className="text-lg font-semibold mb-4">Mavjud mezonlar</h3>
-              <div className="space-y-4 max-h-[60vh] overflow-y-auto">{Object.entries(filteredCriteria as ScoringSystem).map(([type, subTypes]) => (
-                <div key={type}>
-                  <h4 className="font-bold text-md capitalize mb-2 flex items-center">
-                    {type.replace(/_/g, ' ')}
-                    <button onClick={() => setEditCriterionTypeModal({ open: true, oldType: type, newType: type })} className="ml-2 text-blue-600 hover:text-blue-800">
-                      <Edit3 size={14} />
-                    </button>
-                  </h4>
-                  <ul className="space-y-1 pl-4">{Object.entries(subTypes as ScoringCategory).map(([subType, data]) => (
-                    <li key={subType} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded">
-                      <div><span>{subType}</span><p className="text-xs text-gray-500">{data.description}</p></div>
-                      <div className="flex items-center flex-shrink-0 pl-4">
-                        <span className="font-semibold text-blue-600 mr-4">{data.score} ball</span>
-                        <button onClick={() => setEditCriterionModal({ open: true, type, subType, data })} className="text-green-600 mr-2"><Edit size={16} /></button>
-                        <button onClick={() => setDeleteCriterionModal({ open: true, type, subType })} className="text-red-600"><Trash2 size={16} /></button>
-                      </div>
-                    </li>))}
-                  </ul>
-                </div>))}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Yangi mezon qo'shish</h3>
+            <form onSubmit={handleAddCriterion} className="space-y-4" noValidate>
+              <div>
+                <input type="text" name="type" placeholder="Turi (masalan, publication)" value={criterionForm.type} onChange={e => { setCriterionForm(p => ({ ...p, type: e.target.value })); setCriterionErrors(p => ({ ...p, type: undefined })); }} className={`w-full p-2 border rounded ${criterionErrors.type ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {criterionErrors.type && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.type}</p>}
               </div>
-            </Card>
-            <Modal open={editCriterionTypeModal.open} onClose={() => setEditCriterionTypeModal({ open: false, oldType: '', newType: '' })}>
-              <h2 className="text-lg font-bold mb-2">Mezon turini tahrirlash</h2>
-              <p className="text-sm mb-2">Eski nom: <span className="font-mono bg-gray-100 p-1 rounded">{editCriterionTypeModal.oldType}</span></p>
-              <input type="text" placeholder="Yangi nom (masalan, new_publication)" className="w-full border rounded p-2 mb-2" value={editCriterionTypeModal.newType} onChange={e => setEditCriterionTypeModal(p => ({...p, newType: e.target.value.replace(/\s/g, '_').toLowerCase()}))} />
-              <div className="flex justify-end mt-4">
-                <button onClick={() => setEditCriterionTypeModal({ open: false, oldType: '', newType: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button>
-                <button onClick={handleEditCriterionType} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button>
+              <div>
+                <input type="text" name="subType" placeholder="Nomi (masalan, Scopus Q1)" value={criterionForm.subType} onChange={e => { setCriterionForm(p => ({ ...p, subType: e.target.value })); setCriterionErrors(p => ({ ...p, subType: undefined })); }} className={`w-full p-2 border rounded ${criterionErrors.subType ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {criterionErrors.subType && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.subType}</p>}
               </div>
-            </Modal>
-            <Modal open={editCriterionModal.open} onClose={() => setEditCriterionModal({ open: false, type: '', subType: '', data: null })}>
-              <h2 className="text-lg font-bold mb-2">Mezonni tahrirlash</h2>
-              <div className="space-y-2">
-                <input type="number" placeholder="Ball" className="w-full border rounded p-2" value={editCriterionModal.data?.score || ''} onChange={e => setEditCriterionModal(p => ({...p, data: {...p.data, score: e.target.value}}))} />
-                <input type="text" placeholder="Tavsifi" className="w-full border rounded p-2" value={editCriterionModal.data?.description || ''} onChange={e => setEditCriterionModal(p => ({...p, data: {...p.data, description: e.target.value}}))} />
+              <div>
+                <input type="number" name="score" placeholder="Ball" value={criterionForm.score} onChange={e => { setCriterionForm(p => ({ ...p, score: e.target.value })); setCriterionErrors(p => ({ ...p, score: undefined })); }} className={`w-full p-2 border rounded ${criterionErrors.score ? 'border-red-500 bg-red-50' : 'border-gray-300'}`} />
+                {criterionErrors.score && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{criterionErrors.score}</p>}
               </div>
-              <div className="flex justify-end mt-4"><button onClick={() => setEditCriterionModal({ open: false, type: '', subType: '', data: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditCriterion} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
-            </Modal>
-            <Modal open={deleteCriterionModal.open} onClose={() => setDeleteCriterionModal({ open: false, type: '', subType: '' })}>
-              <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
-              <p><b>{deleteCriterionModal.subType}</b> mezonini o'chirishga ishonchingiz komilmi?</p>
-              <div className="flex justify-end mt-4"><button onClick={() => setDeleteCriterionModal({ open: false, type: '', subType: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteCriterion} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
-            </Modal>
-          </div>
+              <input type="text" name="description" placeholder="Tavsifi" value={criterionForm.description} onChange={e => setCriterionForm(p => ({ ...p, description: e.target.value }))} className="w-full p-2 border border-gray-300 rounded" />
+              <button type="submit" className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"><PlusCircle size={16} className="mr-2" /> Qo'shish</button>
+            </form>
+          </Card>
+          <Card>
+            <h3 className="text-lg font-semibold mb-4">Mavjud mezonlar</h3>
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto">{Object.entries(filteredCriteria as ScoringSystem).map(([type, subTypes]) => (
+              <div key={type}>
+                <h4 className="font-bold text-md capitalize mb-2 flex items-center">
+                  {type.replace(/_/g, ' ')}
+                  <button onClick={() => setEditCriterionTypeModal({ open: true, oldType: type, newType: type })} className="ml-2 text-blue-600 hover:text-blue-800">
+                    <Edit3 size={14} />
+                  </button>
+                </h4>
+                <ul className="space-y-1 pl-4">{Object.entries(subTypes as ScoringCategory).map(([subType, data]) => (
+                  <li key={subType} className="flex justify-between items-center text-sm p-2 hover:bg-gray-50 rounded">
+                    <div><span>{subType}</span><p className="text-xs text-gray-500">{data.description}</p></div>
+                    <div className="flex items-center flex-shrink-0 pl-4">
+                      <span className="font-semibold text-blue-600 mr-4">{data.score} ball</span>
+                      <button onClick={() => setEditCriterionModal({ open: true, type, subType, data })} className="text-green-600 mr-2"><Edit size={16} /></button>
+                      <button onClick={() => setDeleteCriterionModal({ open: true, type, subType })} className="text-red-600"><Trash2 size={16} /></button>
+                    </div>
+                  </li>))}
+                </ul>
+              </div>))}
+            </div>
+          </Card>
+          <Modal open={editCriterionTypeModal.open} onClose={() => setEditCriterionTypeModal({ open: false, oldType: '', newType: '' })}>
+            <h2 className="text-lg font-bold mb-2">Mezon turini tahrirlash</h2>
+            <p className="text-sm mb-2">Eski nom: <span className="font-mono bg-gray-100 p-1 rounded">{editCriterionTypeModal.oldType}</span></p>
+            <input type="text" placeholder="Yangi nom (masalan, new_publication)" className="w-full border rounded p-2 mb-2" value={editCriterionTypeModal.newType} onChange={e => setEditCriterionTypeModal(p => ({ ...p, newType: e.target.value.replace(/\s/g, '_').toLowerCase() }))} />
+            <div className="flex justify-end mt-4">
+              <button onClick={() => setEditCriterionTypeModal({ open: false, oldType: '', newType: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button>
+              <button onClick={handleEditCriterionType} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button>
+            </div>
+          </Modal>
+          <Modal open={editCriterionModal.open} onClose={() => setEditCriterionModal({ open: false, type: '', subType: '', data: null })}>
+            <h2 className="text-lg font-bold mb-2">Mezonni tahrirlash</h2>
+            <div className="space-y-2">
+              <input type="number" placeholder="Ball" className="w-full border rounded p-2" value={editCriterionModal.data?.score || ''} onChange={e => setEditCriterionModal(p => ({ ...p, data: { ...p.data, score: e.target.value } }))} />
+              <input type="text" placeholder="Tavsifi" className="w-full border rounded p-2" value={editCriterionModal.data?.description || ''} onChange={e => setEditCriterionModal(p => ({ ...p, data: { ...p.data, description: e.target.value } }))} />
+            </div>
+            <div className="flex justify-end mt-4"><button onClick={() => setEditCriterionModal({ open: false, type: '', subType: '', data: null })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleEditCriterion} className="px-4 py-2 rounded bg-blue-600 text-white">Saqlash</button></div>
+          </Modal>
+          <Modal open={deleteCriterionModal.open} onClose={() => setDeleteCriterionModal({ open: false, type: '', subType: '' })}>
+            <h2 className="text-lg font-bold mb-2">O'chirishni tasdiqlang</h2>
+            <p><b>{deleteCriterionModal.subType}</b> mezonini o'chirishga ishonchingiz komilmi?</p>
+            <div className="flex justify-end mt-4"><button onClick={() => setDeleteCriterionModal({ open: false, type: '', subType: '' })} className="px-4 py-2 rounded bg-gray-200 mr-2">Bekor</button><button onClick={handleDeleteCriterion} className="px-4 py-2 rounded bg-red-600 text-white">O'chirish</button></div>
+          </Modal>
+        </div>
       );
       case 'users': return (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Yangi foydalanuvchi va Bo'lim Admini qo'shish</h3>
-              <form onSubmit={handleAddUser} className="space-y-4" noValidate>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-1">
+            <h3 className="text-lg font-semibold mb-4 text-gray-800">Yangi foydalanuvchi va Bo'lim Admini qo'shish</h3>
+            <form onSubmit={handleAddUser} className="space-y-4" noValidate>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Foydalanuvchi nomi / F.I.Sh</label>
+                <input
+                  type="text"
+                  placeholder="masalan: alivaliyev"
+                  value={userForm.username}
+                  onChange={e => { setUserForm(p => ({ ...p, username: e.target.value, fullName: e.target.value })); setUserErrors({}); }}
+                  className={`w-full p-2 border rounded text-sm ${userErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                />
+                {userErrors.username && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{userErrors.username}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Email (ixtiyoriy, tizimga kirish uchun)</label>
+                <input
+                  type="email"
+                  placeholder="admin@kpi.uz"
+                  value={userForm.email}
+                  onChange={e => setUserForm(p => ({ ...p, email: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Parol (ixtiyoriy)</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={userForm.password}
+                  onChange={e => setUserForm(p => ({ ...p, password: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
+                <select
+                  value={userForm.role}
+                  onChange={e => setUserForm(p => ({ ...p, role: e.target.value }))}
+                  className="w-full p-2 bg-white border border-gray-300 rounded text-sm cursor-pointer"
+                >
+                  {Object.values(ROLE_DEFINITIONS).map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.icon} {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {userForm.role === 'dekan' && (
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Foydalanuvchi nomi / F.I.Sh</label>
-                  <input
-                    type="text"
-                    placeholder="masalan: alivaliyev"
-                    value={userForm.username}
-                    onChange={e => { setUserForm(p => ({...p, username: e.target.value, fullName: e.target.value})); setUserErrors({}); }}
-                    className={`w-full p-2 border rounded text-sm ${userErrors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                  />
-                  {userErrors.username && <p className="text-red-600 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{userErrors.username}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Email (ixtiyoriy, tizimga kirish uchun)</label>
-                  <input
-                    type="email"
-                    placeholder="admin@kpi.uz"
-                    value={userForm.email}
-                    onChange={e => setUserForm(p => ({...p, email: e.target.value}))}
-                    className="w-full p-2 border border-gray-300 rounded text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Parol (ixtiyoriy)</label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={userForm.password}
-                    onChange={e => setUserForm(p => ({...p, password: e.target.value}))}
-                    className="w-full p-2 border border-gray-300 rounded text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Fakultet</label>
                   <select
-                    value={userForm.role}
-                    onChange={e => setUserForm(p => ({...p, role: e.target.value}))}
-                    className="w-full p-2 bg-white border border-gray-300 rounded text-sm cursor-pointer"
+                    value={userForm.facultyId}
+                    onChange={e => setUserForm(p => ({ ...p, facultyId: e.target.value }))}
+                    className={`w-full p-2 bg-white border rounded text-sm ${userErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
                   >
-                    {Object.values(ROLE_DEFINITIONS).map(r => (
-                      <option key={r.id} value={r.id}>
-                        {r.icon} {r.label}
-                      </option>
+                    <option value="">-- Fakultetni tanlang --</option>
+                    {faculties.map(f => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
                     ))}
                   </select>
+                  {userErrors.facultyId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.facultyId}</p>}
                 </div>
-                {userForm.role === 'dekan' && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Fakultet</label>
-                    <select
-                      value={userForm.facultyId}
-                      onChange={e => setUserForm(p => ({...p, facultyId: e.target.value}))}
-                      className={`w-full p-2 bg-white border rounded text-sm ${userErrors.facultyId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                    >
-                      <option value="">-- Fakultetni tanlang --</option>
-                      {faculties.map(f => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
-                      ))}
-                    </select>
-                    {userErrors.facultyId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.facultyId}</p>}
-                  </div>
-                )}
-                {(userForm.role === 'admin' || userForm.role === 'kafedra_mudiri' || userForm.role === 'oqituvchi') && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Bo'lim (Kafedra)</label>
-                    <select
-                      value={userForm.departmentId}
-                      onChange={e => setUserForm(p => ({...p, departmentId: e.target.value}))}
-                      className={`w-full p-2 bg-white border rounded text-sm ${userErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
-                    >
-                      <option value="">-- Bo'limni tanlang --</option>
-                      {departments.map(d => (
-                        <option key={d.id} value={d.id}>{d.name}</option>
-                      ))}
-                    </select>
-                    {userErrors.departmentId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.departmentId}</p>}
-                  </div>
-                )}
+              )}
+
+              {(userForm.role === 'admin' || userForm.role === 'kafedra_mudiri' || userForm.role === 'oqituvchi') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktiriladigan Bo'lim (Kafedra)</label>
+                  <select
+                    value={userForm.departmentId}
+                    onChange={e => setUserForm(p => ({ ...p, departmentId: e.target.value }))}
+                    className={`w-full p-2 bg-white border rounded text-sm ${userErrors.departmentId ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                  >
+                    <option value="">-- Bo'limni tanlang --</option>
+                    {departments.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {userErrors.departmentId && <p className="text-red-600 text-xs mt-1">⚠ {userErrors.departmentId}</p>}
+                </div>
+              )}
                 {userErrors.general && (
                   <p className="text-red-600 text-xs flex items-center gap-1 bg-red-50 border border-red-200 rounded p-2"><span>⚠</span>{userErrors.general}</p>
                 )}
@@ -1236,30 +1238,30 @@ export const DataManagementPage: React.FC<{
                         </div>
                       )}
                     </li>
-                  );
-                })}
-              </ul>
-            </Card>
+                );
+              })}
+            </ul>
+          </Card>
 
-            <Modal open={editUserModal.open} onClose={() => setEditUserModal({ open: false, user: null })}>
-              <h2 className="text-lg font-bold mb-4 text-gray-800">
-                {editUserModal.user?.fullName || editUserModal.user?.username} (Rol va Bo'limini O'zgartirish)
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
-                  <select
-                    value={editUserModal.role || editUserModal.user?.role || 'kafedra_mudiri'}
-                    onChange={e => setEditUserModal(p => ({ ...p, role: e.target.value }))}
-                    className="w-full p-2 border border-gray-300 rounded bg-white text-sm cursor-pointer"
-                  >
-                    {Object.values(ROLE_DEFINITIONS).map(r => (
-                      <option key={r.id} value={r.id}>
-                        {r.icon} {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <Modal open={editUserModal.open} onClose={() => setEditUserModal({ open: false, user: null })}>
+            <h2 className="text-lg font-bold mb-4 text-gray-800">
+              {editUserModal.user?.fullName || editUserModal.user?.username} (Rol va Bo'limini O'zgartirish)
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Tizimdagi Rol</label>
+                <select
+                  value={editUserModal.role || editUserModal.user?.role || 'kafedra_mudiri'}
+                  onChange={e => setEditUserModal(p => ({ ...p, role: e.target.value }))}
+                  className="w-full p-2 border border-gray-300 rounded bg-white text-sm cursor-pointer"
+                >
+                  {Object.values(ROLE_DEFINITIONS).map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.icon} {r.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
                 {(editUserModal.role || editUserModal.user?.role) === 'dekan' && (
                   <div>
                     <label className="block text-xs font-semibold text-gray-700 uppercase mb-1">Biriktirilgan Fakultet</label>
@@ -1307,27 +1309,27 @@ export const DataManagementPage: React.FC<{
               </div>
             </Modal>
 
-            <Modal open={deleteUserModal.open} onClose={() => setDeleteUserModal({ open: false, user: null })}>
-              <h2 className="text-lg font-bold mb-2 text-gray-800">O'chirishni tasdiqlang</h2>
-              <p className="text-sm text-gray-600">
-                <b>{deleteUserModal.user?.fullName || deleteUserModal.user?.username}</b> foydalanuvchisini o'chirishga ishonchingiz komilmi?
-              </p>
-              <div className="flex justify-end mt-4 space-x-2">
-                <button
-                  onClick={() => setDeleteUserModal({ open: false, user: null })}
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
-                >
-                  Bekor
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
-                >
-                  O'chirish
-                </button>
-              </div>
-            </Modal>
-          </div>
+          <Modal open={deleteUserModal.open} onClose={() => setDeleteUserModal({ open: false, user: null })}>
+            <h2 className="text-lg font-bold mb-2 text-gray-800">O'chirishni tasdiqlang</h2>
+            <p className="text-sm text-gray-600">
+              <b>{deleteUserModal.user?.fullName || deleteUserModal.user?.username}</b> foydalanuvchisini o'chirishga ishonchingiz komilmi?
+            </p>
+            <div className="flex justify-end mt-4 space-x-2">
+              <button
+                onClick={() => setDeleteUserModal({ open: false, user: null })}
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm"
+              >
+                Bekor
+              </button>
+              <button
+                onClick={handleDeleteUser}
+                className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm font-medium"
+              >
+                O'chirish
+              </button>
+            </div>
+          </Modal>
+        </div>
       );
       case 'approvals': {
         const pendingAchievements = achievements.filter(a => a.status === 'pending');
@@ -1518,11 +1520,10 @@ export const DataManagementPage: React.FC<{
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`${
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+              className={`${activeTab === tab.id
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
             >
               <tab.icon size={18} className="mr-2" /> {tab.label}
             </button>
