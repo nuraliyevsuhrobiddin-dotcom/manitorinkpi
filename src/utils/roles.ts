@@ -129,6 +129,6 @@ export const getAllowedViewsForRole = (roleString?: string): string[] => {
 
     case 'guest':
     default:
-      return ['dashboard', 'faculties', 'departments', 'professors', 'kpi', 'potential', 'projects'];
+      return [];
   }
 };

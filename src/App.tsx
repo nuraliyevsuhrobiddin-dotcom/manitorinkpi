@@ -26,6 +26,7 @@ import { PerformanceMonitoringPage } from './pages/PerformanceMonitoringPage';
 import { EfficiencyPage } from './pages/EfficiencyPage';
 import { DataManagementPage } from './pages/DataManagementPage';
 import { LoginModal } from './components/modals/LoginModal';
+import { LoginPage } from './components/LoginPage';
 import { getAllowedViewsForRole, getRoleMeta } from './utils/roles';
 
 const REPORT_YEAR_STORAGE_KEY = 'kpi_selected_report_year';
@@ -62,10 +63,14 @@ const getViewFromHash = (): string => {
 };
 
 function App() {
-  const guestUser = useMemo(() => CONSTANTS.USERS.find((u: User) => u.role === 'guest') || { id: 0, username: 'guest', role: 'guest' }, []);
-
-  // Initialize from localStorage — validateSession() will verify server-side on mount
-  const [user, setUser] = useState<User | null>(() => (AuthService.getCurrentUser() as User | null) || guestUser);
+  // Initialize from localStorage — only keep if authenticated (not guest)
+  const [user, setUser] = useState<User | null>(() => {
+    const stored = AuthService.getCurrentUser() as User | null;
+    if (stored && stored.role && stored.role !== 'guest') {
+      return stored;
+    }
+    return null;
+  });
   const [loginError, setLoginError] = useState('');
   const [loginModalOpen, setLoginModalOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -521,13 +526,11 @@ function App() {
     let cancelled = false;
     AuthService.validateSession().then((validUser) => {
       if (cancelled) return;
-      if (!validUser) {
-        // Session is invalid/expired — revert to guest
-        setUser(guestUser);
+      if (!validUser || validUser.role === 'guest') {
+        setUser(null);
       }
-      // If validUser exists, state is already correct from useState initializer
     }).catch(() => {
-      if (!cancelled) setUser(guestUser);
+      if (!cancelled) setUser(null);
     });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -586,8 +589,7 @@ function App() {
 
   const handleLogout = async () => {
     await AuthService.logout();
-    setUser(guestUser);
-    handleNavigate('dashboard');
+    setUser(null);
     setLoginError('');
   };
 
@@ -597,9 +599,15 @@ function App() {
     setFilters({ gender: [], degree: [], title: [], ageRange: [], position: [] });
   }, [activeView]);
 
-  if (!user) {
-    // This should not happen with default guest user, but as a fallback
-    return <div>Loading...</div>;
+  // Agar foydalanuvchi tizimga kirmagan bo'lsa (yoki guest bo'lsa) — to'liq yopiq Login ekrani chiqadi
+  if (!user || user.role === 'guest') {
+    return (
+      <LoginPage
+        logoPath={ASSETS.logos.university.path}
+        onLogin={handleLogin}
+        error={loginError}
+      />
+    );
   }
 
   // ── Skeleton loading screen ─────────────────────────────────────────────────
