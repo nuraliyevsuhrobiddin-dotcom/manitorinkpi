@@ -543,6 +543,38 @@ function App() {
     setLoginError('');
   };
 
+  const handleRegister = async (credentials: {
+    username: string;
+    email: string;
+    password: string;
+    fullName: string;
+    departmentId: number | null;
+  }): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await AuthService.register({
+        ...credentials,
+        role: 'admin',
+      });
+
+      if (res.user) {
+        const deptObj = departments.find(d => d.id === credentials.departmentId);
+        const userWithDept = {
+          ...res.user,
+          departmentName: deptObj?.name,
+        };
+        setUser(userWithDept as User);
+        handleNavigate('dashboard');
+        setLoginModalOpen(false);
+        setLoginError('');
+        return { success: true, message: "Ro'yxatdan muvaffaqiyatli o'tdingiz!" };
+      } else {
+        return { success: false, message: res.error || "Ro'yxatdan o'tishda xatolik yuz berdi" };
+      }
+    } catch (err: any) {
+      return { success: false, message: err.message || "Xatolik yuz berdi" };
+    }
+  };
+
   useEffect(() => {
     // Reset search and filters when view changes
     setSearchQuery('');
@@ -734,6 +766,8 @@ function App() {
         open={loginModalOpen}
         onClose={() => { setLoginModalOpen(false); setLoginError(''); }}
         onLogin={handleLogin}
+        onRegister={handleRegister}
+        departments={departments}
         error={loginError}
       />
     </div>
